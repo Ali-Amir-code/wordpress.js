@@ -21,7 +21,8 @@ Milestones describe acceptance criteria, not promised dates. The current impleme
 
 ## M2 — Practical websites
 
-- Media library: validated image uploads, size limits, metadata, alt text, transformations, deletion references and storage adapter. Test malicious files and large images.
+- [x] Media backend: validated image uploads, size limits, metadata, alt text, transformations, deletion references, storage adapter and upgrade/recovery tests.
+- [ ] Media workflow: searchable admin library, metadata editing, accessible editor picker and browser upload → select → publish journey.
 - Navigation: ordered menus and links, homepage selection, footer editing and redirects on slug changes.
 - Content: rich text with constrained output, taxonomy, pagination, scheduled publication and recoverable revision history.
 - Forms: accessible fields, server validation, spam protection, consent/retention controls and delivery retries. No email credentials in browser bundles.

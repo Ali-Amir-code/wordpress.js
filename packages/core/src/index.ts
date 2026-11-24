@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { mediaSelectionSchema } from './media';
+export * from './media';
 
 const text = (max: number) => z.string().max(max);
 const id = z.string().min(1).max(160);
@@ -26,6 +28,12 @@ const imageUrl = text(2048).refine(
 );
 
 export const blockSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('MediaImage'),
+      props: z.object({ id, asset: mediaSelectionSchema.nullable() }).strict(),
+    })
+    .strict(),
   z
     .object({
       type: z.literal('Hero'),

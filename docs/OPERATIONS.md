@@ -49,11 +49,21 @@ The server loads `.env` using Node's built-in environment-file support. Environm
 
 Run one server process per SQLite database on persistent local disk. The database uses WAL, so copying only the main `.sqlite` file while the app is running is **not** a safe backup. For the initial manual workflow: stop the process gracefully, copy the entire data directory to a protected location, restart, and verify a restore into a separate test instance. Backups include password hashes and session records; protect them as secrets. Automated online backups and session invalidation on restore are still planned.
 
-Migrations run at startup using `PRAGMA user_version`. The initial schema is version 1. A database from a newer schema version is rejected. Never delete a user's database to fix migration failures. Back up before upgrades; future schema changes require explicit migrations and upgrade tests.
+Migrations run at startup using `PRAGMA user_version`. The current schema is version 2; the v1→v2 migration adds media tables without changing owners, sessions, settings or content. A database from a newer schema version is rejected. Never delete a user's database to fix migration failures. Back up before upgrades. Rolling back to a v1 binary requires restoring the complete pre-upgrade backup; do not downgrade `user_version` by hand.
+
+## Media storage
+
+Uploaded images live in `DATA_DIR/media` beside the database. Back up and restore **the entire data directory together while stopped**; restoring only the database or only the images produces an inconsistent site. Keep this directory on local persistent disk, outside any proxy/static web root, and restrict it to the server account. Do not point a web server or CDN directly at it: the application enforces publication-aware access.
+
+The local adapter writes generated UUID filenames exclusively and flushes image bytes before activation. Pending uploads and deletion tombstones are durable; startup removes their files and records before accepting traffic. If cleanup fails, startup fails so an operator can correct disk permissions/availability and restart. Active files are never removed by recovery. This assumes one process; do not share a database/storage directory among multiple servers. It does not provide power-loss durability guarantees for the underlying filesystem.
+
+Each upload accepts one still JPEG, PNG or WebP up to 10 MiB and 24 megapixels (8192 pixels per side maximum). Output is WebP, at most 2560 × 2560, with metadata stripped; originals are discarded. The fixed library quota is 256 MiB / 1000 images including incomplete operations. Limits are defined in `packages/core/src/media.ts`. Allow a little multipart overhead in a reverse proxy's upload size limit (the application caps it at 10 MiB + 64 KiB). Two uploads can be processed concurrently; further requests receive 429. No object storage or CDN adapter exists yet.
+
+Only images referenced by published content can be fetched anonymously. Images used by saved drafts or published snapshots cannot be deleted. Library metadata updates only defaults for future selections; existing blocks retain their alt text/caption. Unpublishing removes anonymous access unless another published entry uses the image. Previously downloaded copies cannot be recalled.
 
 ## Current limits
 
-One site, one owner, one server process. No password reset, MFA, user invitations, upload service, revision-history restoration, plugin installer, export/import UI, content deletion or automatic backups. Public navigation shows the first six published pages; homepage uses `home`. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
+One site, one owner, one server process. No password reset, MFA, user invitations, revision-history restoration, plugin installer, export/import UI, content deletion or automatic backups. Public navigation shows the first six published pages; homepage uses `home`. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
 
 ## Troubleshooting
 

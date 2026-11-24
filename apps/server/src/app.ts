@@ -4,7 +4,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
 import {
   contentPath,
@@ -17,6 +17,8 @@ import {
 import { AppError, Repository } from './repository';
 import { equalToken, hashPassword, newToken, tokenHash, verifyPassword } from './auth';
 import { escapeXml, renderBlog, renderDocument, renderNotice } from './render';
+import { LocalMediaStorage, type MediaStorage } from './media-storage';
+import { registerMedia } from './media';
 
 export interface AppOptions {
   databasePath: string;
@@ -27,6 +29,7 @@ export interface AppOptions {
   stylesheetPath: string;
   logger?: boolean;
   rateLimit?: boolean;
+  mediaStorage?: MediaStorage;
 }
 const revisionSchema = z.object({ revision: z.number().int().positive() }).strict();
 const credentials = z
@@ -41,7 +44,7 @@ const credentials = z
 const publicApi = new Set(['/api/health', '/api/setup/status', '/api/setup', '/api/auth/login']);
 const sessionLifetime = 7 * 24 * 60 * 60;
 export async function buildApp(options: AppOptions) {
-  const repo = new Repository(options.databasePath);
+  const repo = new Repository(options.databasePath, options.siteUrl);
   const app = Fastify({
     logger: options.logger
       ? { redact: ['req.headers.cookie', 'req.headers.authorization', 'res.headers.set-cookie'] }
@@ -83,8 +86,13 @@ export async function buildApp(options: AppOptions) {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       if (request.headers.origin !== options.adminOrigin)
         throw new AppError(403, 'This request must come from the configured admin origin.');
-      if (!request.headers['content-type']?.toLowerCase().startsWith('application/json'))
-        throw new AppError(415, 'Send an application/json request.');
+      const mediaType = request.headers['content-type']?.split(';')[0]?.trim().toLowerCase();
+      const isUpload = request.method === 'POST' && request.routeOptions.url === '/api/media';
+      if (mediaType !== (isUpload ? 'multipart/form-data' : 'application/json'))
+        throw new AppError(
+          415,
+          isUpload ? 'Send an image as multipart/form-data.' : 'Send an application/json request.',
+        );
     }
     if (!publicApi.has(path)) {
       const token = request.cookies.wjs_session;
@@ -114,6 +122,18 @@ export async function buildApp(options: AppOptions) {
     repo.addSession(tokenHash(token), Date.now() + sessionLifetime * 1000);
     reply.setCookie('wjs_session', token, cookieOptions);
   };
+  try {
+    await registerMedia(
+      app,
+      repo,
+      options.mediaStorage ||
+        new LocalMediaStorage(resolve(dirname(options.databasePath), 'media')),
+      options.rateLimit !== false,
+    );
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
   app.get('/api/health', async () => ({ status: 'ok' }));
   app.get('/api/setup/status', async () => ({ needsSetup: !repo.owner() }));
   app.post(

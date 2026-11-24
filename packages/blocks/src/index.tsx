@@ -1,7 +1,24 @@
-import type { Block, ContentDocument } from '@wordpressjs/core';
+import { mediaPath, type Block, type ContentDocument } from '@wordpressjs/core';
 
 export function BlockView({ block }: { block: Block }) {
   switch (block.type) {
+    case 'MediaImage': {
+      const asset = block.props.asset;
+      return asset ? (
+        <figure id={block.props.id} className="site-section site-wrap site-image">
+          <img
+            src={mediaPath(asset.id)}
+            width={asset.width}
+            height={asset.height}
+            alt={asset.alt}
+            loading="lazy"
+          />
+          {asset.caption && <figcaption>{asset.caption}</figcaption>}
+        </figure>
+      ) : (
+        <div className="site-wrap site-section">Choose an image from your media library.</div>
+      );
+    }
     case 'Hero':
       return (
         <section id={block.props.id} className={`site-hero tone-${block.props.tone}`}>

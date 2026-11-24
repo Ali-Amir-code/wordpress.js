@@ -2,7 +2,7 @@ import type { Config } from '@puckeditor/core';
 import type { BlockProps } from '@wordpressjs/core';
 import { BlockView } from './index';
 
-export const blockConfig: Config<BlockProps> = {
+export const blockConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
   root: { fields: {}, render: ({ children }) => <div className="site">{children}</div> },
   categories: {
     layout: { title: 'Sections', components: ['Hero', 'Features', 'CallToAction'] },

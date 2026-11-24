@@ -1,5 +1,15 @@
 # Changelog
 
+## Media backend checkpoint — 2026-11-24
+
+- Added authenticated image upload, search, metadata editing and deletion APIs with a local storage adapter.
+- Added decoded JPEG/PNG/WebP validation, size/pixel/concurrency/quota limits, WebP conversion and metadata stripping.
+- Added publication-aware image access, transactional draft/published references, metadata snapshots and deletion conflict checks.
+- Added database migration 2 and durable cleanup for interrupted writes/deletions.
+- Documented storage, backups, API contracts and ADR 0002. Admin library/picker follows in the next checkpoint.
+
+Validation: 28 core/API tests, formatting/types/production build, and the existing Playwright publishing journey pass on Node 24.20.0. The new upload-to-picker browser journey is pending the UI checkpoint.
+
 ## 0.1.0-alpha.1 foundation — 2026-11-24
 
 Initial source milestone; not a published package or production release.

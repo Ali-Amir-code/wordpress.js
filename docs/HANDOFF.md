@@ -26,14 +26,14 @@ Use Node 24 and `npm ci`. README.md is the quick start; OPERATIONS.md explains t
 
 ## Next useful work
 
-Start with **M2 media library**. Write a storage/upload ADR covering file-type validation, size limits, permissions, image decoding/transformation, orphaned assets, backups and local/object storage. Then implement a narrow upload → select → render workflow with malicious-file and persistence tests. Do not add a pretend media screen before it works.
+**M2 media backend is implemented**; [ADR 0002](decisions/0002-media-library.md) covers the design. `media.ts` handles uploads/routes, `media-repository.ts` handles usage/quota and publication validation, and `media-storage.ts` provides local storage. Migration 2 preserves v1 sites. Tests exercise decoding limits, privacy, snapshots, referenced deletion, storage failure/recovery and upgrades. The admin library and visual picker are the next checkpoint; the editor currently still exposes the original seven blocks. Do not create MediaImage documents through the API for normal editing until that checkpoint lands.
 
 Independent small tasks: accessible quote-block improvements, public blog pagination, navigation configuration, and export-format design. Larger changes need an ADR and the acceptance criteria in ROADMAP.md.
 
 ## Known limitations and decisions
 
 - Naming clearance or a distinct final name is unresolved. This is not an official WordPress project.
-- No media uploads, rich text, revision-history restoration, scheduled publishing, roles, recovery/MFA, forms, plugins, themes marketplace, custom content types or commerce.
+- No media admin/picker yet, rich text, revision-history restoration, scheduled publishing, roles, recovery/MFA, forms, plugins, themes marketplace, custom content types or commerce.
 - No compatibility claim for WordPress plugins, PHP themes or exports.
 - A revision counter detects conflicts; it does not preserve historical snapshots.
 - The public menu is derived from at most six published pages. Public blog and sitemap queries are not yet paginated.

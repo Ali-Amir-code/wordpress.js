@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
+import { MediaRepository } from './media-repository';
 import {
   defaultSettings,
   type ContentEntry,
@@ -41,14 +42,15 @@ function entry(row: Row): ContentEntry {
 
 export class Repository {
   readonly db: DatabaseSync;
-  constructor(path: string) {
+  readonly media: MediaRepository;
+  constructor(path: string, siteUrl = 'http://localhost:3000') {
     this.db = new DatabaseSync(path);
     this.db.exec(
       'PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;',
     );
     const version = (this.db.prepare('PRAGMA user_version').get() as { user_version: number })
       .user_version;
-    if (version > 1) {
+    if (version > 2) {
       this.db.close();
       throw new Error(
         'Database is newer than this application. Upgrade the application before opening it.',
@@ -71,6 +73,17 @@ export class Repository {
           .prepare('INSERT INTO settings (id, value) VALUES (1, ?)')
           .run(JSON.stringify(defaultSettings));
       });
+    if (version < 2)
+      this.transaction(() => {
+        this.db.exec(`
+        CREATE TABLE media (id TEXT PRIMARY KEY, title TEXT NOT NULL, alt TEXT NOT NULL, caption TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, bytes INTEGER NOT NULL, revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('pending', 'active', 'deleting')));
+        CREATE INDEX media_created ON media(created_at DESC);
+        CREATE TABLE content_media (content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE, media_id TEXT NOT NULL REFERENCES media(id) ON DELETE RESTRICT, stage TEXT NOT NULL CHECK (stage IN ('draft', 'published')), PRIMARY KEY (content_id, media_id, stage));
+        CREATE INDEX media_usage ON content_media(media_id, stage);
+        PRAGMA user_version = 2;
+      `);
+      });
+    this.media = new MediaRepository(this.db, (fn) => this.transaction(fn), siteUrl);
   }
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');
@@ -101,7 +114,7 @@ export class Repository {
       this.db
         .prepare('UPDATE settings SET value = ? WHERE id = 1')
         .run(JSON.stringify({ ...defaultSettings, title }));
-      return this.create('page', draft);
+      return this.insertContent('page', draft);
     });
   }
   addSession(hash: string, expires: number) {
@@ -143,6 +156,10 @@ export class Repository {
     return entry(row);
   }
   create(kind: ContentKind, draft: Draft): ContentEntry {
+    return this.transaction(() => this.insertContent(kind, draft));
+  }
+  private insertContent(kind: ContentKind, draft: Draft): ContentEntry {
+    draft = this.media.validateDraft(draft);
     const id = randomUUID(),
       now = new Date().toISOString();
     this.db
@@ -150,42 +167,51 @@ export class Repository {
         'INSERT INTO content (id, kind, draft, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
       )
       .run(id, kind, JSON.stringify(draft), now, now);
+    this.media.syncReferences(id, 'draft', draft);
     return this.get(id);
   }
   save(id: string, draft: Draft, revision: number) {
-    this.get(id);
-    const result = this.db
-      .prepare(
-        'UPDATE content SET draft = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
-      )
-      .run(JSON.stringify(draft), new Date().toISOString(), id, revision);
-    if (!result.changes)
-      throw new AppError(
-        409,
-        'This content changed in another window. Reload before saving. Your local changes have not been saved.',
-      );
-    return this.get(id);
+    return this.transaction(() => {
+      this.get(id);
+      draft = this.media.validateDraft(draft);
+      const result = this.db
+        .prepare(
+          'UPDATE content SET draft = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
+        )
+        .run(JSON.stringify(draft), new Date().toISOString(), id, revision);
+      if (!result.changes)
+        throw new AppError(
+          409,
+          'This content changed in another window. Reload before saving. Your local changes have not been saved.',
+        );
+      this.media.syncReferences(id, 'draft', draft);
+      return this.get(id);
+    });
   }
   publish(id: string, revision: number, published: boolean) {
-    this.get(id);
-    const now = new Date().toISOString();
-    const result = published
-      ? this.db
-          .prepare(
-            'UPDATE content SET published = draft, published_at = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
-          )
-          .run(now, now, id, revision)
-      : this.db
-          .prepare(
-            'UPDATE content SET published = NULL, published_at = NULL, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
-          )
-          .run(now, id, revision);
-    if (!result.changes)
-      throw new AppError(
-        409,
-        'This content changed elsewhere. Reload before changing publication.',
-      );
-    return this.get(id);
+    return this.transaction(() => {
+      const current = this.get(id);
+      if (published) this.media.validateDraft(current, true);
+      const now = new Date().toISOString();
+      const result = published
+        ? this.db
+            .prepare(
+              'UPDATE content SET published = draft, published_at = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
+            )
+            .run(now, now, id, revision)
+        : this.db
+            .prepare(
+              'UPDATE content SET published = NULL, published_at = NULL, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
+            )
+            .run(now, id, revision);
+      if (!result.changes)
+        throw new AppError(
+          409,
+          'This content changed elsewhere. Reload before changing publication.',
+        );
+      this.media.syncReferences(id, 'published', published ? current : null);
+      return this.get(id);
+    });
   }
   list(options: {
     kind?: ContentKind;

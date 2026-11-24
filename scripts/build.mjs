@@ -9,6 +9,6 @@ await build({
   format: 'esm',
   target: 'node24',
   sourcemap: true,
-  external: ['fastify', '@fastify/*', 'react', 'react-dom/*', 'zod'],
+  external: ['fastify', '@fastify/*', 'react', 'react-dom/*', 'zod', 'sharp'],
 });
 await copyFile('packages/blocks/src/styles.css', 'dist/site.css');

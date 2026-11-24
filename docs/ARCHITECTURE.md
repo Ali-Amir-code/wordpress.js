@@ -47,6 +47,8 @@ SQLite uses foreign keys, WAL, prepared statements and numbered migrations. Each
 
 Development: Vite proxies `/api` to Fastify, and the public website is served by Fastify. Production: one Fastify process serves the built admin and public HTML. The public website needs no hydration JavaScript for the built-in blocks. Configure a canonical origin rather than trusting arbitrary Host headers.
 
+Media uses an authenticated multipart endpoint and a local storage adapter. Images are decoded into bounded WebP files, with a catalog and separate draft/published reference rows updated inside content transactions. Anonymous media reads require a published reference; metadata in each block is a snapshot. Pending writes/deletions are recovered on startup. Vite also proxies `/media/`. See [ADR 0002](decisions/0002-media-library.md) and the backup requirements in OPERATIONS.md.
+
 ## Extension contracts
 
 To add a built-in block: add its strict schema in core, shared render component and Puck field configuration in blocks, then validation/rendering coverage. Breaking content changes require a schema migration. This is an internal development seam, not a stable third-party plugin SDK. Themes, custom content types, hooks and a permissioned plugin SDK need separate ADRs.
