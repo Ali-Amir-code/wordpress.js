@@ -19,13 +19,13 @@ flowchart LR
 
 ## Boundaries
 
-| Directory | Responsibility |
-| --- | --- |
-| `packages/core` | Schema version, block validation, content/settings types, starter documents |
-| `packages/blocks` | Reusable components, editor field definitions, public rendering |
-| `apps/server` | HTTP routes, authentication, persistence, publication and metadata |
-| `apps/admin` | Setup, login, overview, pages/posts, editor and site settings |
-| `tests` | API integration and real-browser publishing journeys |
+| Directory         | Responsibility                                                              |
+| ----------------- | --------------------------------------------------------------------------- |
+| `packages/core`   | Schema version, block validation, content/settings types, starter documents |
+| `packages/blocks` | Reusable components, editor field definitions, public rendering             |
+| `apps/server`     | HTTP routes, authentication, persistence, publication and metadata          |
+| `apps/admin`      | Setup, login, overview, pages/posts, editor and site settings               |
+| `tests`           | API integration and real-browser publishing journeys                        |
 
 The server never trusts editor data. The contract allowlists block types, fields, lengths and URL schemes. Content is text and structured props, not executable HTML. React escapes text during rendering. Unknown schema versions are rejected, not silently coerced.
 

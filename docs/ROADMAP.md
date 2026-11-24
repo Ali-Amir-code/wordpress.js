@@ -6,18 +6,18 @@ Milestones describe acceptance criteria, not promised dates. The current impleme
 
 - [x] Product scope and researched architecture decisions.
 - [x] MIT license, contribution guide and agent instructions.
-- [ ] Reproducible install, CI, strict type checks and test harness.
-- [ ] Documented local development and initial implementation handoff.
+- [x] Reproducible install, CI, strict type checks and test harness.
+- [x] Documented local development and initial implementation handoff.
 
 ## M1 — Create, edit, publish
 
-- [ ] Token-protected setup, owner login/logout and durable sessions.
-- [ ] Persistent pages/posts, unique slugs and search/filter in the admin.
-- [ ] Visual block editor, starter layout and responsive preview.
-- [ ] Explicit draft save, publish/unpublish and stale-write protection.
-- [ ] Server-rendered pages, blog index, metadata, sitemap and robots file.
-- [ ] Site title, description and accent settings.
-- [ ] Browser journey and tests proving drafts never leak publicly.
+- [x] Token-protected setup, owner login/logout and durable sessions.
+- [x] Persistent pages/posts, unique slugs and search/filter in the admin.
+- [x] Visual block editor, starter layout and responsive preview.
+- [x] Explicit draft save, publish/unpublish and stale-write protection.
+- [x] Server-rendered pages, blog index, metadata, sitemap and robots file.
+- [x] Site title, description and accent settings.
+- [x] Browser journey and tests proving drafts never leak publicly.
 
 ## M2 — Practical websites
 
