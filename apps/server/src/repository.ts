@@ -1,8 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { MediaRepository } from './media-repository';
+import { NavigationRepository } from './navigation-repository';
 import {
   defaultSettings,
+  defaultNavigation,
   type ContentEntry,
   type ContentKind,
   type Draft,
@@ -43,6 +45,7 @@ function entry(row: Row): ContentEntry {
 export class Repository {
   readonly db: DatabaseSync;
   readonly media: MediaRepository;
+  readonly navigation: NavigationRepository;
   constructor(path: string, siteUrl = 'http://localhost:3000') {
     this.db = new DatabaseSync(path);
     this.db.exec(
@@ -50,7 +53,7 @@ export class Repository {
     );
     const version = (this.db.prepare('PRAGMA user_version').get() as { user_version: number })
       .user_version;
-    if (version > 2) {
+    if (version > 3) {
       this.db.close();
       throw new Error(
         'Database is newer than this application. Upgrade the application before opening it.',
@@ -84,6 +87,20 @@ export class Repository {
       `);
       });
     this.media = new MediaRepository(this.db, (fn) => this.transaction(fn), siteUrl);
+    if (version < 3)
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE navigation (id INTEGER PRIMARY KEY CHECK (id = 1), draft TEXT NOT NULL, published TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, published_at TEXT);
+          CREATE TABLE redirects (source TEXT PRIMARY KEY, content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE, created_at TEXT NOT NULL);
+          CREATE INDEX redirects_target ON redirects(content_id);
+          PRAGMA user_version = 3;
+        `);
+        const initial = JSON.stringify(defaultNavigation());
+        this.db
+          .prepare('INSERT INTO navigation (id, draft, published) VALUES (1, ?, ?)')
+          .run(initial, initial);
+      });
+    this.navigation = new NavigationRepository(this.db, (fn) => this.transaction(fn));
   }
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');
@@ -191,7 +208,13 @@ export class Repository {
   publish(id: string, revision: number, published: boolean) {
     return this.transaction(() => {
       const current = this.get(id);
+      if (current.revision !== revision)
+        throw new AppError(
+          409,
+          'This content changed elsewhere. Reload before changing publication.',
+        );
       if (published) this.media.validateDraft(current, true);
+      else this.navigation.assertCanUnpublish(id);
       const now = new Date().toISOString();
       const result = published
         ? this.db
@@ -210,6 +233,8 @@ export class Repository {
           'This content changed elsewhere. Reload before changing publication.',
         );
       this.media.syncReferences(id, 'published', published ? current : null);
+      if (published)
+        this.navigation.recordSlugChange(id, current.kind, current.published?.slug, current.slug);
       return this.get(id);
     });
   }
@@ -280,7 +305,12 @@ export class Repository {
       )
       .get(kind, slug) as Row | undefined;
     return row
-      ? { ...(JSON.parse(row.published!) as Draft), publishedAt: row.published_at! }
+      ? {
+          ...(JSON.parse(row.published!) as Draft),
+          id: row.id,
+          kind: row.kind,
+          publishedAt: row.published_at!,
+        }
       : undefined;
   }
 }

@@ -1,7 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
 import { DocumentView } from '@wordpressjs/blocks';
-import { contentPath, type ContentKind, type Draft, type SiteSettings } from '@wordpressjs/core';
+import {
+  contentPath,
+  type ContentKind,
+  type Draft,
+  type NavigationDocument,
+  type ResolvedLink,
+} from '@wordpressjs/core';
 import type { Repository } from './repository';
 
 const accents = {
@@ -20,11 +26,26 @@ export function renderSite(
     preview?: boolean;
     noindex?: boolean;
     type?: 'article' | 'website';
+    navigation?: NavigationDocument;
   },
 ) {
   const { settings } = repo.settings();
   const [accent, tint] = accents[settings.accent];
-  const pages = repo.publicContent('page').slice(0, 6);
+  const menu = repo.navigation.resolve(options.navigation);
+  const links = (items: ResolvedLink[]) => (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>
+          <a
+            href={item.href}
+            aria-current={!options.noindex && item.href === options.path ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
   return (
     '<!doctype html>' +
     renderToStaticMarkup(
@@ -66,21 +87,17 @@ export function renderSite(
               {settings.title}
               <span aria-hidden="true">.</span>
             </a>
-            <nav aria-label="Main navigation">
-              {pages.map((page) => (
-                <a key={page.id} href={contentPath('page', page.slug)}>
-                  {page.title}
-                </a>
-              ))}
-              <a href="/blog">Journal</a>
-            </nav>
+            <nav aria-label="Main navigation">{links(menu.header)}</nav>
           </header>
           <main id="main-content">{options.children}</main>
           <footer className="site-footer site-wrap">
             <span>
               © {new Date().getUTCFullYear()} {settings.title}
             </span>
-            <span>Made with WordPressJS</span>
+            {menu.footer.length > 0 && (
+              <nav aria-label="Footer navigation">{links(menu.footer)}</nav>
+            )}
+            {menu.footerText && <span>{menu.footerText}</span>}
           </footer>
         </body>
       </html>,
@@ -90,14 +107,16 @@ export function renderSite(
 export function renderDocument(
   repo: Repository,
   siteUrl: string,
-  draft: Draft,
+  draft: Draft & { id: string },
   kind: ContentKind,
   preview = false,
+  options: { path?: string; navigation?: NavigationDocument } = {},
 ) {
   return renderSite(repo, siteUrl, {
     title: draft.title,
     description: draft.description,
-    path: contentPath(kind, draft.slug),
+    path: options.path ?? repo.navigation.pathFor({ ...draft, kind }, options.navigation),
+    navigation: options.navigation,
     preview,
     type: kind === 'post' ? 'article' : 'website',
     children: (

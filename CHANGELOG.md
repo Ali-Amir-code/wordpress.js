@@ -1,5 +1,14 @@
 # Changelog
 
+## Navigation backend checkpoint — 2026-11-25
+
+- Added separate draft/published navigation, ordered content/URL links, footer text and selected homepages.
+- Added content-ID-based slug history, canonical-path resolution, safe homepage aliases and protected homepage unpublishing.
+- Added migration 3 with preservation tests for v2 accounts, sessions, content and media references.
+- Documented the API, upgrade behavior and ADR 0003. The Navigation workspace follows in the next checkpoint.
+
+Validation: 40 core/API tests pass on Node 24.20.0. Navigation browser coverage follows with its editing screen.
+
 ## Media library and editor workflow — 2026-11-25
 
 - Added a searchable, paginated media library with image details, alt text, captions, usage counts and guarded deletion.

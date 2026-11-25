@@ -11,12 +11,13 @@ import {
   draftSchema,
   emptyDocument,
   kindSchema,
+  navigationSchema,
   settingsSchema,
   starterDocument,
 } from '@wordpressjs/core';
 import { AppError, Repository } from './repository';
 import { equalToken, hashPassword, newToken, tokenHash, verifyPassword } from './auth';
-import { escapeXml, renderBlog, renderDocument, renderNotice } from './render';
+import { escapeXml, renderBlog, renderDocument, renderNotice, renderSite } from './render';
 import { LocalMediaStorage, type MediaStorage } from './media-storage';
 import { registerMedia } from './media';
 
@@ -197,6 +198,7 @@ export async function buildApp(options: AppOptions) {
     stats: repo.stats(),
     ...repo.settings(),
     siteUrl: options.siteUrl,
+    homepageId: repo.navigation.editorHomepageId(),
   }));
   app.get('/api/settings', async () => repo.settings());
   app.put('/api/settings', async (request) => {
@@ -206,8 +208,8 @@ export async function buildApp(options: AppOptions) {
       .parse(request.body);
     return repo.updateSettings(data.settings, data.revision);
   });
-  app.get('/api/content', async (request) =>
-    repo.list(
+  app.get('/api/content', async (request) => {
+    const result = repo.list(
       z
         .object({
           kind: kindSchema.optional(),
@@ -217,8 +219,59 @@ export async function buildApp(options: AppOptions) {
           offset: z.coerce.number().int().min(0).default(0),
         })
         .parse(request.query),
-    ),
+    );
+    return { ...result, items: result.items.map((entry) => repo.navigation.present(entry)) };
+  });
+  app.get('/api/navigation', async () => repo.navigation.state());
+  app.put('/api/navigation', async (request) => {
+    const { document, revision } = z
+      .object({ document: navigationSchema, revision: z.number().int().positive() })
+      .strict()
+      .parse(request.body);
+    return repo.navigation.save(document, revision);
+  });
+  app.post('/api/navigation/publish', async (request) =>
+    repo.navigation.publish(revisionSchema.parse(request.body).revision),
   );
+  app.get('/api/navigation/targets', async (request) => {
+    const query = z
+      .object({
+        q: z.string().max(100).default(''),
+        kind: kindSchema.optional(),
+        published: z.enum(['true', 'false']).default('false'),
+        limit: z.coerce.number().int().min(1).max(100).default(20),
+        offset: z.coerce.number().int().min(0).default(0),
+      })
+      .strict()
+      .parse(request.query);
+    return repo.navigation.targets(
+      query.q,
+      query.kind,
+      query.published === 'true',
+      query.limit,
+      query.offset,
+    );
+  });
+  app.get('/api/navigation/preview', async (_request, reply) => {
+    const document = repo.navigation.snapshot('draft');
+    const page = repo.navigation.homepage(document);
+    reply.header('X-Robots-Tag', 'noindex, nofollow');
+    return reply.type('text/html').send(
+      page
+        ? renderDocument(repo, options.siteUrl, page, 'page', true, {
+            path: '/',
+            navigation: document,
+          })
+        : renderSite(repo, options.siteUrl, {
+            title: 'Navigation preview',
+            path: '/',
+            preview: true,
+            navigation: document,
+            children:
+              'Your saved header and footer are shown here. Publish your chosen homepage to preview its content.',
+          }),
+    );
+  });
   app.post('/api/content', async (request, reply) => {
     const data = z
       .object({
@@ -230,26 +283,34 @@ export async function buildApp(options: AppOptions) {
       .strict()
       .parse(request.body);
     return reply.code(201).send(
-      repo.create(data.kind, {
-        title: data.title,
-        slug: data.slug,
-        description: '',
-        document: data.template === 'starter' ? starterDocument() : emptyDocument(),
-      }),
+      repo.navigation.present(
+        repo.create(data.kind, {
+          title: data.title,
+          slug: data.slug,
+          description: '',
+          document: data.template === 'starter' ? starterDocument() : emptyDocument(),
+        }),
+      ),
     );
   });
   const contentId = (params: unknown) => z.object({ id: z.uuid() }).parse(params).id;
-  app.get('/api/content/:id', async (request) => repo.get(contentId(request.params)));
+  app.get('/api/content/:id', async (request) =>
+    repo.navigation.present(repo.get(contentId(request.params))),
+  );
   app.put('/api/content/:id', async (request) => {
     const data = draftSchema.extend({ revision: z.number().int().positive() }).parse(request.body);
     const { revision, ...draft } = data;
-    return repo.save(contentId(request.params), draft, revision);
+    return repo.navigation.present(repo.save(contentId(request.params), draft, revision));
   });
   app.post('/api/content/:id/publish', async (request) =>
-    repo.publish(contentId(request.params), revisionSchema.parse(request.body).revision, true),
+    repo.navigation.present(
+      repo.publish(contentId(request.params), revisionSchema.parse(request.body).revision, true),
+    ),
   );
   app.post('/api/content/:id/unpublish', async (request) =>
-    repo.publish(contentId(request.params), revisionSchema.parse(request.body).revision, false),
+    repo.navigation.present(
+      repo.publish(contentId(request.params), revisionSchema.parse(request.body).revision, false),
+    ),
   );
   app.get('/api/content/:id/preview', async (request, reply) => {
     const data = repo.get(contentId(request.params));
@@ -280,7 +341,7 @@ export async function buildApp(options: AppOptions) {
       .publicContent()
       .map(
         (item) =>
-          `<url><loc>${escapeXml(options.siteUrl + contentPath(item.kind, item.slug))}</loc><lastmod>${item.publishedAt}</lastmod></url>`,
+          `<url><loc>${escapeXml(options.siteUrl + repo.navigation.pathFor(item))}</loc><lastmod>${item.publishedAt}</lastmod></url>`,
       )
       .join('');
     return reply
@@ -305,7 +366,7 @@ export async function buildApp(options: AppOptions) {
         ),
       );
   app.get('/', async (_request, reply) => {
-    const page = repo.findPublished('page', 'home');
+    const page = repo.navigation.homepage();
     return reply
       .type('text/html')
       .send(
@@ -319,12 +380,27 @@ export async function buildApp(options: AppOptions) {
             ),
       );
   });
+  const serveContent = (
+    kind: 'page' | 'post',
+    slug: string,
+    reply: import('fastify').FastifyReply,
+  ) => {
+    const path = contentPath(kind, slug, false);
+    const page = repo.findPublished(kind, slug);
+    if (page) {
+      const canonical = repo.navigation.pathFor(page);
+      if (canonical !== path)
+        return reply.header('Cache-Control', 'no-store').redirect(canonical, 302);
+      return reply.type('text/html').send(renderDocument(repo, options.siteUrl, page, kind));
+    }
+    const redirect = repo.navigation.redirect(path);
+    return redirect
+      ? reply.header('Cache-Control', 'no-store').redirect(redirect, 308)
+      : notFound(reply);
+  };
   app.get('/blog/:slug', async (request, reply) => {
     const { slug } = request.params as { slug: string };
-    const page = repo.findPublished('post', slug);
-    return page
-      ? reply.type('text/html').send(renderDocument(repo, options.siteUrl, page, 'post'))
-      : notFound(reply);
+    return serveContent('post', slug, reply);
   });
   if (options.staticDir) {
     await app.register(staticFiles, {
@@ -336,10 +412,7 @@ export async function buildApp(options: AppOptions) {
   }
   app.get('/:slug', async (request, reply) => {
     const { slug } = request.params as { slug: string };
-    const page = repo.findPublished('page', slug);
-    return page
-      ? reply.type('text/html').send(renderDocument(repo, options.siteUrl, page, 'page'))
-      : notFound(reply);
+    return serveContent('page', slug, reply);
   });
   app.setNotFoundHandler(async (request, reply) =>
     request.url.startsWith('/api/')

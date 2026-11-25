@@ -36,11 +36,31 @@
   letter-spacing: -0.8px;
   text-decoration: none;
 }
-.site-header nav {
+.site-header nav ul {
   display: flex;
   gap: 28px;
   flex-wrap: wrap;
   font-size: 14px;
+}
+.site-header nav ul,
+.site-footer nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.site-header nav a[aria-current='page'],
+.site-footer nav a[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.site-footer nav ul {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.site-header nav a,
+.site-footer nav a {
+  overflow-wrap: anywhere;
 }
 .site-header nav a {
   text-decoration: none;
@@ -229,6 +249,7 @@
   border-top: 1px solid #dce1d8;
   padding: 32px 0;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 20px;
   font-size: 13px;
@@ -294,7 +315,7 @@
     flex-direction: column;
     gap: 12px;
   }
-  .site-header nav {
+  .site-header nav ul {
     gap: 18px;
   }
   .site-hero {

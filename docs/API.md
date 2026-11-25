@@ -33,6 +33,24 @@ Errors use `{ "error": "Explanation", "details": ["optional field errors"] }`. V
 
 Passwords are 12–128 characters. Emails are lowercased. Slugs use lowercase ASCII letters, numbers and single hyphens, up to 100 characters. System names are reserved. Block documents have at most 100 blocks and the request body is capped at 512 KiB. There is no content deletion endpoint yet.
 
+## Navigation API
+
+| Method | Route                 | Behavior                                                                                                          |
+| ------ | --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| GET    | `/navigation`         | `{ draft, published, revision, publishedAt, references }`; references contain lightweight target metadata.        |
+| PUT    | `/navigation`         | `{ document, revision }`; validates and saves the complete private navigation draft.                              |
+| POST   | `/navigation/publish` | `{ revision }`; validates destinations and atomically publishes the saved draft.                                  |
+| GET    | `/navigation/targets` | `{ items, total }`; query `q`, `kind=page\|post`, `published=true\|false`, `limit` (1–100, default 20), `offset`. |
+| GET    | `/navigation/preview` | Authenticated saved navigation preview with published homepage content, noindex and no-store.                     |
+
+The navigation document is `{ homepageId: UUID|null, header: { mode: "auto"|"custom", items: [] }, footer: { text, items: [] } }`. `null` keeps the published page with slug `home` as the homepage. Automatic mode uses up to six published pages plus Journal. Each ordered menu accepts up to 20 links; footer text accepts 300 characters.
+
+A link is `{ id: UUID, label, type: "content", contentId: UUID }` or `{ id: UUID, label, type: "url", url }`. Item IDs are unique across both menus. Labels are 1–80 characters. URLs allow root-relative paths, anchors, HTTP(S), mailto and tel, with the shared URL safety checks. Unknown fields are rejected. Content links follow the current published address; URL links are unmanaged.
+
+Save accepts existing unpublished destinations. Publish requires a published page for an explicit homepage and published content for active menu links; otherwise it returns 409 without changing public navigation. Dormant custom header links do not block automatic mode. Unpublishing a linked entry hides its link until republished. Unpublishing an explicitly selected homepage returns 409 until another homepage choice is published.
+
+Targets include `id`, `kind`, `title`, `published` and `path`; published titles take precedence over working draft titles. Content responses include `publicPath` (null when unpublished) and `homepageId` (the published explicit choice, or null for legacy mode). `/overview` includes the effective homepage ID for its editor shortcut.
+
 ## Media API
 
 | Method | Route        | Behavior                                                                                            |
@@ -90,4 +108,6 @@ The authoritative field definitions are in `packages/core/src/index.ts`. IDs mus
 
 ## Public URLs
 
-`/` uses a published page with slug `home`. Other pages use `/:slug`; posts use `/blog/:slug`. `/blog` lists published posts. `/sitemap.xml` lists published addresses and `/robots.txt` excludes the admin/API. Slug changes take effect only on republish. Automatic redirects and custom navigation are roadmap work.
+`/` uses the published navigation homepage choice, falling back to the published page with slug `home` in legacy mode. Its normal slug address returns a temporary 302 to `/`. Other pages use `/:slug`; posts use `/blog/:slug`. `/blog` lists published posts. `/sitemap.xml` lists canonical published addresses and `/robots.txt` excludes the admin/API.
+
+Republishing a changed slug records the previous natural path. Historical paths return a 308 directly to the current canonical path; unpublished targets return 404. Active pages take precedence, and publishing at an old address reclaims it. Both kinds of redirects use `no-store` and discard query strings. `/` never becomes a historical redirect. See [ADR 0003](decisions/0003-navigation-and-routing.md).

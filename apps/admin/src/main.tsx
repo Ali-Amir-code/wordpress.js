@@ -19,7 +19,12 @@ import {
   Settings2,
   Sparkles,
 } from 'lucide-react';
-import type { ContentEntry, ContentKind, SiteSettings } from '@wordpressjs/core';
+import {
+  contentPath,
+  type ContentView as ContentEntry,
+  type ContentKind,
+  type SiteSettings,
+} from '@wordpressjs/core';
 import { api, message, navigation } from './api';
 import './styles.css';
 
@@ -30,6 +35,7 @@ type Overview = {
   settings: SiteSettings;
   revision: number;
   siteUrl: string;
+  homepageId: string | null;
   stats: { total: number; pages: number; posts: number; published: number; drafts: number };
 };
 function useRoute() {
@@ -418,7 +424,7 @@ function Dashboard({ user, overview }: { user: User; overview: Overview | null }
       .then((data) => setEntries(data.items))
       .catch((error) => setError(message(error)));
   }, []);
-  const home = entries.find((item) => item.kind === 'page' && item.slug === 'home');
+  const homepageId = overview?.homepageId;
   return (
     <>
       <div className="page-heading">
@@ -452,7 +458,7 @@ function Dashboard({ user, overview }: { user: User; overview: Overview | null }
             <br />
             Make it something that feels like you.
           </p>
-          <a className="button primary" href={home ? `#edit/${home.id}` : '#pages'}>
+          <a className="button primary" href={homepageId ? `#edit/${homepageId}` : '#pages'}>
             Open the editor
             <ArrowRight size={16} />
           </a>
@@ -582,14 +588,14 @@ function Dashboard({ user, overview }: { user: User; overview: Overview | null }
             },
             {
               title: 'Shape your first page',
-              done: (home?.revision || 1) > 1,
-              href: home ? `#edit/${home.id}` : '#pages',
+              done: entries.some((item) => item.id === homepageId && item.revision > 1),
+              href: homepageId ? `#edit/${homepageId}` : '#pages',
               text: 'A few words. A little personality.',
             },
             {
               title: 'Share it with the world',
               done: (overview?.stats.published || 0) > 0,
-              href: home ? `#edit/${home.id}` : '#pages',
+              href: homepageId ? `#edit/${homepageId}` : '#pages',
               text: 'Publish when it feels right.',
             },
           ].map((item, i) => (
@@ -739,8 +745,11 @@ function ContentList({ kind }: { kind: ContentKind }) {
                         <span>
                           <strong>{item.title}</strong>
                           <small>
-                            /{kind === 'post' ? 'blog/' : ''}
-                            {item.slug === 'home' && kind === 'page' ? '' : item.slug}
+                            {contentPath(
+                              item.kind,
+                              item.slug,
+                              item.homepageId === null ? undefined : item.homepageId === item.id,
+                            )}
                           </small>
                         </span>
                       </a>

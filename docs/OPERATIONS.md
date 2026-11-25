@@ -49,7 +49,7 @@ The server loads `.env` using Node's built-in environment-file support. Environm
 
 Run one server process per SQLite database on persistent local disk. The database uses WAL, so copying only the main `.sqlite` file while the app is running is **not** a safe backup. For the initial manual workflow: stop the process gracefully, copy the entire data directory to a protected location, restart, and verify a restore into a separate test instance. Backups include password hashes and session records; protect them as secrets. Automated online backups and session invalidation on restore are still planned.
 
-Migrations run at startup using `PRAGMA user_version`. The current schema is version 2; the v1→v2 migration adds media tables without changing owners, sessions, settings or content. A database from a newer schema version is rejected. Never delete a user's database to fix migration failures. Back up before upgrades. Rolling back to a v1 binary requires restoring the complete pre-upgrade backup; do not downgrade `user_version` by hand.
+Migrations run at startup using `PRAGMA user_version`. The current schema is version 3. Migration 2 adds media tables; migration 3 adds navigation snapshots and redirect history. Existing owners, sessions, settings, content and media references are preserved. Navigation starts in automatic mode with the original `home` homepage rule. A database from a newer schema version is rejected. Never delete a user's database to fix migration failures. Back up before upgrades. Rolling back to an older schema's binary requires restoring the complete pre-upgrade backup; do not downgrade `user_version` by hand.
 
 ## Media storage
 

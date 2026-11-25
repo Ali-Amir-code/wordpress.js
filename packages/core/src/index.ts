@@ -1,23 +1,13 @@
 import { z } from 'zod';
 import { mediaSelectionSchema } from './media';
+import { isSafeUrl } from './urls';
 export * from './media';
+export * from './navigation';
+export { isSafeUrl } from './urls';
 
 const text = (max: number) => z.string().max(max);
 const id = z.string().min(1).max(160);
 const tone = z.enum(['light', 'tint', 'dark']);
-export function isSafeUrl(value: string, image = false): boolean {
-  if (!value || /[\s\\\u0000-\u001f\u007f]/.test(value)) return false;
-  if (/^\/(?!\/)/.test(value)) return true;
-  if (!image && value.startsWith('#')) return true;
-  try {
-    const url = new URL(value);
-    return (image ? ['https:', 'http:'] : ['https:', 'http:', 'mailto:', 'tel:']).includes(
-      url.protocol,
-    );
-  } catch {
-    return false;
-  }
-}
 const href = text(2048).refine(
   (v) => isSafeUrl(v),
   'Use a relative link or an http, https, mailto or tel URL.',
@@ -217,6 +207,6 @@ export function starterDocument(): ContentDocument {
     ],
   };
 }
-export function contentPath(kind: ContentKind, slug: string): string {
-  return kind === 'post' ? `/blog/${slug}` : slug === 'home' ? '/' : `/${slug}`;
+export function contentPath(kind: ContentKind, slug: string, homepage?: boolean): string {
+  return kind === 'post' ? `/blog/${slug}` : (homepage ?? slug === 'home') ? '/' : `/${slug}`;
 }

@@ -5,7 +5,7 @@ import {
   contentPath,
   type BlockProps,
   type ContentDocument,
-  type ContentEntry,
+  type ContentView as ContentEntry,
 } from '@wordpressjs/core';
 import { ArrowLeft, ArrowUpRight, Check, Eye, Save, Settings2 } from 'lucide-react';
 import { api, message, navigation, contentSignature } from './api';
@@ -58,6 +58,11 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
     [initial],
   );
   const draft = { title, slug, description, document };
+  const draftPath = contentPath(
+    entry.kind,
+    slug,
+    entry.homepageId === null ? undefined : entry.homepageId === entry.id,
+  );
   const dirty =
     contentSignature(draft) !==
     contentSignature({
@@ -200,11 +205,7 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
           <Check size={15} />
           {notice}
           {entry.published && (
-            <a
-              href={siteUrl + contentPath(entry.kind, entry.published.slug)}
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={siteUrl + entry.publicPath} target="_blank" rel="noreferrer">
               View live
               <ArrowUpRight size={14} />
             </a>
@@ -224,7 +225,7 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
           <label>
             URL slug
             <input value={slug} maxLength={100} onChange={(event) => setSlug(event.target.value)} />
-            <small>{contentPath(entry.kind, slug)}</small>
+            <small>{draftPath}</small>
           </label>
           <label>
             Search description
@@ -250,7 +251,7 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
             setDocument({ schemaVersion: 1, content: data.content, root: { props: {} } })
           }
           headerTitle="Your canvas"
-          headerPath={contentPath(entry.kind, slug)}
+          headerPath={draftPath}
           overrides={{
             headerActions: () => (
               <span className="canvas-hint">Select a block to make it yours</span>
