@@ -26,14 +26,17 @@ Use Node 24 and `npm ci`. README.md is the quick start; OPERATIONS.md explains t
 
 ## Next useful work
 
-**M2 media backend is implemented**; [ADR 0002](decisions/0002-media-library.md) covers the design. `media.ts` handles uploads/routes, `media-repository.ts` handles usage/quota and publication validation, and `media-storage.ts` provides local storage. Migration 2 preserves v1 sites. Tests exercise decoding limits, privacy, snapshots, referenced deletion, storage failure/recovery and upgrades. The admin library and visual picker are the next checkpoint; the editor currently still exposes the original seven blocks. Do not create MediaImage documents through the API for normal editing until that checkpoint lands.
+**M2 media library is implemented**; [ADR 0002](decisions/0002-media-library.md) covers the design and [MEDIA.md](MEDIA.md) explains the workflow. Server `media.ts` handles uploads/routes, `media-repository.ts` handles usage/quota and publication validation, and `media-storage.ts` provides local storage. Migration 2 preserves v1 sites. Admin `media.tsx` owns the searchable library, image details and picker; `createBlockConfig` accepts the picker without importing the admin into shared blocks. Tests exercise decoding limits (including APNG), privacy, snapshots, referenced deletion, storage failure/recovery, upgrade preservation and real browser use. Each browser project uses its own temporary installation.
+
+Next: **M2 navigation and homepage selection**. Write an ADR for ordered links, internal content references, draft/public menu behavior, homepage routing, slug-change redirects and conflict rules. Preserve published snapshot isolation and migration compatibility. Add a vertical browser journey before marking the milestone complete.
 
 Independent small tasks: accessible quote-block improvements, public blog pagination, navigation configuration, and export-format design. Larger changes need an ADR and the acceptance criteria in ROADMAP.md.
 
 ## Known limitations and decisions
 
 - Naming clearance or a distinct final name is unresolved. This is not an official WordPress project.
-- No media admin/picker yet, rich text, revision-history restoration, scheduled publishing, roles, recovery/MFA, forms, plugins, themes marketplace, custom content types or commerce.
+- No rich text, revision-history restoration, scheduled publishing, roles, recovery/MFA, forms, plugins, themes marketplace, custom content types or commerce.
+- Media storage is local disk with fixed quotas and no original retention or responsive variants. Publication-aware no-store access favors privacy over CDN caching. Pending deletions recover on restart; persistent storage errors need operator attention.
 - No compatibility claim for WordPress plugins, PHP themes or exports.
 - A revision counter detects conflicts; it does not preserve historical snapshots.
 - The public menu is derived from at most six published pages. Public blog and sitemap queries are not yet paginated.

@@ -1,8 +1,8 @@
-import type { Config } from '@puckeditor/core';
-import type { BlockProps } from '@wordpressjs/core';
+import type { Config, CustomField } from '@puckeditor/core';
+import type { BlockProps, MediaSelection } from '@wordpressjs/core';
 import { BlockView } from './index';
 
-export const blockConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
+const baseConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
   root: { fields: {}, render: ({ children }) => <div className="site">{children}</div> },
   categories: {
     layout: { title: 'Sections', components: ['Hero', 'Features', 'CallToAction'] },
@@ -87,7 +87,7 @@ export const blockConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
       ),
     },
     Image: {
-      label: 'Image',
+      label: 'Image URL',
       fields: {
         src: { type: 'text', label: 'Image URL' },
         alt: { type: 'text', label: 'Alternative text' },
@@ -150,3 +150,27 @@ export const blockConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
     },
   },
 };
+
+// The admin supplies the picker; shared blocks never import the admin or its API client.
+export function createBlockConfig(
+  mediaField: CustomField<MediaSelection | null>,
+): Config<BlockProps> {
+  return {
+    ...baseConfig,
+    categories: {
+      ...baseConfig.categories,
+      content: { title: 'Content', components: ['Text', 'MediaImage', 'Image', 'Quote', 'Spacer'] },
+    },
+    components: {
+      ...baseConfig.components,
+      MediaImage: {
+        label: 'Library image',
+        fields: { asset: mediaField },
+        defaultProps: { asset: null },
+        render: ({ id, asset }) => (
+          <BlockView block={{ type: 'MediaImage', props: { id, asset } }} />
+        ),
+      },
+    },
+  };
+}

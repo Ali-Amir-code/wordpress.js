@@ -6,7 +6,9 @@ export async function api<T>(
     method: options?.method || 'GET',
     credentials: 'same-origin',
     ...(options?.body !== undefined
-      ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(options.body) }
+      ? options.body instanceof FormData
+        ? { body: options.body }
+        : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(options.body) }
       : {}),
   });
   const data = await response.json();
@@ -18,6 +20,19 @@ export async function api<T>(
 }
 export function message(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+}
+
+// JSON object key order is not content. Arrays retain their meaningful order.
+export function contentSignature(value: unknown): string {
+  return JSON.stringify(value, (_key, item) =>
+    item && typeof item === 'object' && !Array.isArray(item)
+      ? Object.fromEntries(
+          Object.keys(item)
+            .sort()
+            .map((key) => [key, item[key]]),
+        )
+      : item,
+  );
 }
 
 export const navigation = { confirmLeave: null as (() => boolean) | null };

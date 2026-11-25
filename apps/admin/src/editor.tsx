@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Puck, type Data } from '@puckeditor/core';
-import { blockConfig } from '@wordpressjs/blocks/config';
+import { createBlockConfig } from '@wordpressjs/blocks/config';
 import {
   contentPath,
   type BlockProps,
@@ -8,9 +8,12 @@ import {
   type ContentEntry,
 } from '@wordpressjs/core';
 import { ArrowLeft, ArrowUpRight, Check, Eye, Save, Settings2 } from 'lucide-react';
-import { api, message, navigation } from './api';
+import { api, message, navigation, contentSignature } from './api';
+import { MediaField } from './media';
 import '@puckeditor/core/no-external.css';
 import '@wordpressjs/blocks/styles.css';
+
+const blockConfig = createBlockConfig({ type: 'custom', label: 'Image', render: MediaField });
 
 export default function Editor({ id, siteUrl }: { id: string; siteUrl: string }) {
   const [entry, setEntry] = useState<ContentEntry | null>(null),
@@ -56,8 +59,8 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
   );
   const draft = { title, slug, description, document };
   const dirty =
-    JSON.stringify(draft) !==
-    JSON.stringify({
+    contentSignature(draft) !==
+    contentSignature({
       title: entry.title,
       slug: entry.slug,
       description: entry.description,
@@ -151,7 +154,7 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
               {dirty
                 ? 'Unsaved changes'
                 : entry.published
-                  ? JSON.stringify(draft) === JSON.stringify(entry.published)
+                  ? contentSignature(draft) === contentSignature(entry.published)
                     ? 'Published'
                     : 'Unpublished changes'
                   : 'Draft saved'}

@@ -1,5 +1,16 @@
 # Changelog
 
+## Media library and editor workflow — 2026-11-25
+
+- Added a searchable, paginated media library with image details, alt text, captions, usage counts and guarded deletion.
+- Added a Library image block and an editor picker with uploads, page-specific text, keyboard selection and focus restoration.
+- Added mobile navigation wrapping and corrected muted-text contrast found by accessibility checks.
+- Fixed false unsaved-change warnings after inserting blocks: editor comparisons now ignore object key order while preserving block order.
+- Added explicit APNG rejection, concurrent-upload and request-limit checks, shared publication tests and regression coverage for reference preservation.
+- Added the media user guide and updated the architecture, roadmap and contributor handoff. Navigation and homepage selection are next; the project remains pre-alpha.
+
+Validation: `npm run check` passes with 32 core/API tests; both Playwright journeys pass on Node 24.20.0 and local Chromium 143. The media journey covers uploads, keyboard picker use/focus restoration, save-state accuracy, publication privacy, metadata snapshots, deletion guards, mobile layout, and axe checks on the library/details fixtures. This does not establish full accessibility conformance or production readiness.
+
 ## Media backend checkpoint — 2026-11-24
 
 - Added authenticated image upload, search, metadata editing and deletion APIs with a local storage adapter.

@@ -2,6 +2,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+const port = process.argv[2] || '3100';
+if (!/^\d+$/.test(port) || Number(port) < 1024 || Number(port) > 65535)
+  throw new Error('Invalid test port');
 const directory = await mkdtemp(join(tmpdir(), 'wordpressjs-e2e-'));
 const child = spawn(process.execPath, ['dist/server.mjs'], {
   stdio: 'inherit',
@@ -10,9 +13,9 @@ const child = spawn(process.execPath, ['dist/server.mjs'], {
     NODE_ENV: 'test',
     DATA_DIR: directory,
     SETUP_TOKEN: 'browser-test-installation-key-not-for-real-deployment',
-    PORT: '3100',
-    SITE_URL: 'http://127.0.0.1:3100',
-    ADMIN_ORIGIN: 'http://127.0.0.1:3100',
+    PORT: port,
+    SITE_URL: `http://127.0.0.1:${port}`,
+    ADMIN_ORIGIN: `http://127.0.0.1:${port}`,
     HOST: '127.0.0.1',
   },
 });

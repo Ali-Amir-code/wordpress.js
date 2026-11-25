@@ -29,3 +29,4 @@ Required checks: v1→v2 data preservation, invalid/disguised/truncated/oversize
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html): allowlisting, authorization, size limits, generated names and isolated storage.
 - [Fastify multipart](https://github.com/fastify/fastify-multipart): streaming, part limits and truncation handling.
 - [sharp input options](https://sharp.pixelplumbing.com/api-constructor/) and [output options](https://sharp.pixelplumbing.com/api-output/): input pixel limits, encoding and metadata behavior.
+- [W3C PNG specification](https://www.w3.org/TR/png/#acTL-chunk): APNG animation chunks. The decoder may expose only the still fallback, so PNG animation is checked at the container level before decoding.

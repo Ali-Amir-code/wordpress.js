@@ -37,7 +37,7 @@ Updates and publication actions carry the expected revision. Stale writers recei
 
 ## Authentication and trust
 
-An explicit installation token protects first-owner creation. The installer closes after the first user. Password hashing uses Node's async scrypt. Random session tokens are stored only as hashes, expire, and are revoked on logout. Cookies are HttpOnly, SameSite=Strict and Secure on HTTPS. Mutations require the configured Origin and JSON content type. Admin routes require a valid session; no client-side role check is treated as authorization. Authentication endpoints are rate limited.
+An explicit installation token protects first-owner creation. The installer closes after the first user. Password hashing uses Node's async scrypt. Random session tokens are stored only as hashes, expire, and are revoked on logout. Cookies are HttpOnly, SameSite=Strict and Secure on HTTPS. Mutations require the configured Origin and JSON content type, except the authenticated multipart image upload. Admin routes require a valid session; no client-side role check is treated as authorization. Authentication endpoints are rate limited.
 
 One owner and one site are supported initially. Role management, invitations, MFA and password recovery are not yet implemented. Future plugin code is trusted code until an actual isolation model exists. There is no plugin upload/install API.
 

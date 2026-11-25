@@ -10,6 +10,7 @@ import {
   CircleHelp,
   FileText,
   Globe,
+  Images,
   LayoutDashboard,
   Leaf,
   LogOut,
@@ -23,6 +24,7 @@ import { api, message, navigation } from './api';
 import './styles.css';
 
 const Editor = lazy(() => import('./editor'));
+const MediaLibrary = lazy(() => import('./media'));
 type User = { id: number; name: string; email: string };
 type Overview = {
   settings: SiteSettings;
@@ -264,11 +266,12 @@ function App() {
         <Editor id={route.slice(5)} siteUrl={overview?.siteUrl || location.origin} />
       </Suspense>
     );
-  const active = ['pages', 'posts', 'settings'].includes(route) ? route : 'overview';
+  const active = ['pages', 'posts', 'media', 'settings'].includes(route) ? route : 'overview';
   const nav = [
     { route: 'overview', label: 'Overview', icon: LayoutDashboard },
     { route: 'pages', label: 'Pages', icon: FileText },
     { route: 'posts', label: 'Posts', icon: BookOpen },
+    { route: 'media', label: 'Media', icon: Images },
     { route: 'settings', label: 'Site settings', icon: Settings2 },
   ];
   async function logout() {
@@ -385,6 +388,10 @@ function App() {
           <ErrorNotice error={error} />
           {active === 'overview' ? (
             <Dashboard user={user} overview={overview} />
+          ) : active === 'media' ? (
+            <Suspense fallback={<Loading />}>
+              <MediaLibrary />
+            </Suspense>
           ) : active === 'settings' ? (
             <Settings
               onSaved={(settings) => setOverview((prev) => (prev ? { ...prev, settings } : prev))}

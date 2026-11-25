@@ -28,13 +28,16 @@ Content is stored in `data/wordpressjs.sqlite` and survives restarts. Setup has 
 | ---------------------- | --------------------------------------------------------------------------------------------------------- |
 | Setup and access       | Installation key, one owner, password login, expiring sessions and logout                                 |
 | Content                | Pages and posts, search, publication filters, paginated admin lists, unique slugs                         |
-| Visual editor          | Puck drag-and-drop, undo/redo, viewport previews, seven validated blocks                                  |
+| Visual editor          | Puck drag-and-drop, undo/redo, viewport previews, eight validated blocks                                  |
+| Media                  | Image uploads, optimization, searchable library, alt text/captions, editor picker and safe deletion       |
 | Publishing             | Save draft, private saved preview, publish/unpublish, separate public snapshots, stale-write protection   |
 | Public website         | Shared block rendering, homepage, pages, journal index and posts; no frontend JavaScript required         |
 | Site identity and SEO  | Name, description, language, three palettes, canonical/Open Graph tags, sitemap and robots                |
 | Contributor foundation | Typed workspaces, integration tests, browser tests, CI, dependency updates, architecture and agent guides |
 
-Built-in blocks: **Hero, Text, Features, Image URL, Call to action, Quote, Spacer**. The editor includes a small business starter layout. Text is plain text; rich text, uploaded media, navigation management, forms, custom themes, multiple users and plugins are future milestones.
+Built-in blocks: **Hero, Text, Features, Library image, Image URL, Call to action, Quote, Spacer**. The editor includes a small business starter layout. Text is plain text; rich text, navigation management, forms, custom themes, multiple users and plugins are future milestones.
+
+Open **Media** to upload a JPEG, PNG or WebP, then add a **Library image** block in the editor. Images stay private until published content uses them. [Media guide](docs/MEDIA.md) explains image details, limits and deletion.
 
 ## Development checks
 
@@ -73,6 +76,7 @@ docs             Research, architecture, roadmap and handoff
 - [Roadmap and acceptance criteria](docs/ROADMAP.md)
 - [Implementation handoff and next tasks](docs/HANDOFF.md)
 - [API guide](docs/API.md)
+- [Using the media library](docs/MEDIA.md)
 - [Running and configuring the app](docs/OPERATIONS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Instructions for coding agents](AGENTS.md)

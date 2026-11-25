@@ -5,6 +5,7 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { crc32 } from 'node:zlib';
 import sharp from 'sharp';
 import {
   MEDIA_LIMITS,
@@ -27,6 +28,46 @@ const png = () =>
   sharp({ create: { width: 64, height: 32, channels: 4, background: '#244d3c' } })
     .png()
     .toBuffer();
+function pngChunk(type: string, data: Buffer) {
+  const chunk = Buffer.alloc(data.length + 12);
+  chunk.writeUInt32BE(data.length, 0);
+  chunk.write(type, 4, 4, 'ascii');
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
+  return chunk;
+}
+async function animatedPng() {
+  const bytes = await png();
+  const compressed: Buffer[] = [];
+  for (let offset = 8; offset + 12 <= bytes.length;) {
+    const length = bytes.readUInt32BE(offset);
+    if (bytes.toString('ascii', offset + 4, offset + 8) === 'IDAT')
+      compressed.push(bytes.subarray(offset + 8, offset + 8 + length));
+    offset += length + 12;
+  }
+  const control = Buffer.alloc(8);
+  control.writeUInt32BE(2, 0);
+  const frame = (sequence: number) => {
+    const data = Buffer.alloc(26);
+    data.writeUInt32BE(sequence, 0);
+    data.writeUInt32BE(64, 4);
+    data.writeUInt32BE(32, 8);
+    data.writeUInt16BE(1, 20);
+    data.writeUInt16BE(10, 22);
+    return pngChunk('fcTL', data);
+  };
+  const sequence = Buffer.alloc(4);
+  sequence.writeUInt32BE(2);
+  return Buffer.concat([
+    bytes.subarray(0, 33),
+    pngChunk('acTL', control),
+    frame(0),
+    bytes.subarray(33, -12),
+    frame(1),
+    pngChunk('fdAT', Buffer.concat([sequence, ...compressed])),
+    bytes.subarray(-12),
+  ]);
+}
 function multipart(bytes: Buffer, filename = 'studio.png', type = 'image/png', extra = '') {
   return Buffer.concat([
     Buffer.from(
@@ -39,6 +80,7 @@ function multipart(bytes: Buffer, filename = 'studio.png', type = 'image/png', e
 async function fixture(
   t: test.TestContext,
   customStorage?: (base: LocalMediaStorage) => MediaStorage,
+  rateLimit = false,
 ) {
   const directory = await mkdtemp(resolve(tmpdir(), 'wjs-media-'));
   const path = resolve(directory, 'site.sqlite');
@@ -59,7 +101,7 @@ async function fixture(
     adminOrigin: origin,
     stylesheetPath: resolve('packages/blocks/src/styles.css'),
     mediaStorage: storage,
-    rateLimit: false,
+    rateLimit,
   };
   const app = await buildApp(options);
   t.after(async () => {
@@ -165,6 +207,9 @@ test('uploads reject spoofed, executable, truncated, animated and oversized inpu
     .toBuffer();
   assert.equal((await sharp(animated).metadata()).pages, 2);
   assert.equal((await upload(animated, 'animation.webp', 'image/webp')).statusCode, 400);
+  const apng = await animatedPng();
+  assert.equal((await sharp(apng).metadata()).width, 64);
+  assert.equal((await upload(apng, 'animation.png', 'image/png')).statusCode, 400);
   assert.equal(repo.media.usage().items, 0);
 });
 
@@ -281,6 +326,63 @@ test('saved image metadata is a snapshot and stale media edits/deletes are rejec
   assert.equal((await request('DELETE', `/api/media/${item.id}`, { revision: 1 })).statusCode, 409);
 });
 
+test('failed content writes preserve references and shared publication keeps an image public', async (t) => {
+  const { image, attach, request, repo, app } = await fixture(t);
+  const first = await image(),
+    replacement = await image();
+  let home = await attach(first);
+  const other = repo.create('page', {
+    title: 'Shared image',
+    slug: 'shared',
+    description: '',
+    document: home.document,
+  });
+  assert.equal(repo.media.get(first.id).draftUses, 2);
+  const stale = await request('PUT', `/api/content/${home.id}`, {
+    title: home.title,
+    slug: home.slug,
+    description: '',
+    revision: home.revision - 1,
+    document: {
+      ...home.document,
+      content: [{ type: 'MediaImage', props: { id: 'stale', asset: mediaSelection(replacement) } }],
+    },
+  });
+  assert.equal(stale.statusCode, 409);
+  assert.equal(repo.media.get(first.id).draftUses, 2);
+  assert.equal(repo.media.get(replacement.id).draftUses, 0);
+  home = (
+    await request('POST', `/api/content/${home.id}/publish`, { revision: home.revision })
+  ).json();
+  const publishedOther = (
+    await request('POST', `/api/content/${other.id}/publish`, { revision: other.revision })
+  ).json() as ContentEntry;
+  await request('POST', `/api/content/${home.id}/unpublish`, { revision: home.revision });
+  assert.equal((await app.inject(first.url)).statusCode, 200);
+  assert.equal(repo.media.get(first.id).publishedUses, 1);
+  await request('POST', `/api/content/${other.id}/unpublish`, {
+    revision: publishedOther.revision,
+  });
+  assert.equal((await app.inject(first.url)).statusCode, 404);
+});
+
+test('PNG metadata containing animation words is accepted and stripped without false matches', async (t) => {
+  const { upload, base } = await fixture(t);
+  const bytes = await png();
+  const response = await upload(
+    Buffer.concat([
+      bytes.subarray(0, 33),
+      pngChunk('tEXt', Buffer.from('Comment\0acTL is only text')),
+      bytes.subarray(33),
+    ]),
+  );
+  assert.equal(response.statusCode, 201, response.body);
+  assert.equal(
+    (await base.read(response.json().id)).includes(Buffer.from('acTL is only text')),
+    false,
+  );
+});
+
 test('missing image IDs, unmanaged internal URLs and empty published image blocks are rejected', async (t) => {
   const { home, request, repo, image } = await fixture(t);
   const page = home();
@@ -304,7 +406,12 @@ test('missing image IDs, unmanaged internal URLs and empty published image block
     },
   };
   assert.equal((await request('PUT', `/api/content/${page.id}`, body)).statusCode, 404);
-  for (const src of ['/media/test.webp', origin + '/media/test.webp']) {
+  for (const src of [
+    '/media/test.webp',
+    origin + '/media/test.webp',
+    '/%6dedia/test.webp',
+    '/bad%url.png',
+  ]) {
     assert.equal(
       (
         await request('PUT', `/api/content/${page.id}`, {
@@ -390,6 +497,49 @@ test('quota accounting reserves pending bytes, and storage failures leave no vis
   );
   assert.equal((await upload(await png())).statusCode, 409);
   assert.equal(repo.media.list('', 20, 0).total, 0);
+});
+
+test('upload concurrency is bounded and pending files remain invisible until activated', async (t) => {
+  let release = () => {},
+    bothWriting = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const ready = new Promise<void>((resolve) => {
+    bothWriting = resolve;
+  });
+  let writes = 0;
+  const { upload, request, repo } = await fixture(t, (base) => ({
+    read: (id) => base.read(id),
+    remove: (id) => base.remove(id),
+    write: async (id, data) => {
+      if (++writes === MEDIA_LIMITS.concurrentUploads) bothWriting();
+      await gate;
+      await base.write(id, data);
+    },
+  }));
+  const bytes = await png();
+  const pending = Array.from({ length: 2 }, () => upload(bytes).then((response) => response));
+  try {
+    await ready;
+    assert.equal((await upload(bytes)).statusCode, 429);
+    assert.equal((await request('GET', '/api/media')).json().total, 0);
+    assert.equal(repo.media.usage().items, 2);
+  } finally {
+    release();
+  }
+  assert.deepEqual(
+    (await Promise.all(pending)).map((response) => response.statusCode),
+    [201, 201],
+  );
+  assert.equal((await upload(bytes)).statusCode, 201);
+});
+
+test('upload rate limit applies even when the authenticated owner sends invalid files', async (t) => {
+  const { upload } = await fixture(t, undefined, true);
+  for (let i = 0; i < 12; i++)
+    assert.equal((await upload(Buffer.from('not an image'))).statusCode, 415);
+  assert.equal((await upload(Buffer.from('not an image'))).statusCode, 429);
 });
 
 test('deletion tombstones reject new references and recovery cleans only incomplete files', async (t) => {

@@ -18,6 +18,19 @@ function inputFormat(bytes: Buffer) {
     'Upload a JPEG, PNG or WebP image. SVG and other formats are not supported.',
   );
 }
+function rejectAnimatedPng(bytes: Buffer) {
+  // A still-image decoder can ignore APNG chunks, so inspect chunk types before decoding.
+  for (let offset = 8; offset + 12 <= bytes.length;) {
+    const length = bytes.readUInt32BE(offset);
+    if (length > bytes.length - offset - 12)
+      throw new AppError(400, 'This PNG file is incomplete.');
+    const type = bytes.toString('ascii', offset + 4, offset + 8);
+    if (type === 'acTL' || type === 'fcTL' || type === 'fdAT')
+      throw new AppError(400, 'Animated PNG images are not supported. Choose a still image.');
+    if (type === 'IEND') return;
+    offset += length + 12;
+  }
+}
 export async function normalizeImage(bytes: Buffer, filename: string, mimetype: string) {
   if (!bytes.length || bytes.length > MEDIA_LIMITS.uploadBytes)
     throw new AppError(413, 'Images must be nonempty and no larger than 10 MiB.');
@@ -25,6 +38,7 @@ export async function normalizeImage(bytes: Buffer, filename: string, mimetype: 
   const extensions = { jpeg: /\.jpe?g$/i, png: /\.png$/i, webp: /\.webp$/i };
   if (mimetype !== `image/${format}` || !extensions[format].test(filename))
     throw new AppError(415, 'The filename, image type and file contents do not match.');
+  if (format === 'png') rejectAnimatedPng(bytes);
   const decoder = sharp(bytes, {
     limitInputPixels: MEDIA_LIMITS.pixels,
     failOn: 'warning',

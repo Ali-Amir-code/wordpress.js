@@ -12,7 +12,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:5173/admin/`. The API and public site run at `http://localhost:3000`. Use **localhost**, consistently, rather than substituting 127.0.0.1: the configured admin origin is checked on writes. Vite proxies `/api`; this is not a CORS-enabled API.
+Open `http://localhost:5173/admin/`. The API and public site run at `http://localhost:3000`. Use **localhost**, consistently, rather than substituting 127.0.0.1: the configured admin origin is checked on writes. Vite proxies `/api` and `/media/`; this is not a CORS-enabled API.
 
 The first start creates `data/wordpressjs.sqlite` and a random `data/setup-token.txt`. Copy the key from that file into the setup form, or configure a random `SETUP_TOKEN` of at least 32 characters before starting. Create your own owner name, email, password and site name. No default credentials exist. Setup creates an unpublished starter homepage; edit and publish it to make it visible.
 

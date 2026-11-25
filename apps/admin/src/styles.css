@@ -14,7 +14,7 @@
   font-weight: 400;
   line-height: 1.5;
   --green: #244d3c;
-  --muted: #72796e;
+  --muted: #626b5e;
   --border: #e6e9e1;
   --tint: #edf2e8;
 }
@@ -1509,9 +1509,10 @@ legend {
   }
   .sidebar nav {
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 4px;
     margin-top: 16px;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
   .sidebar nav a {
     padding: 8px;
