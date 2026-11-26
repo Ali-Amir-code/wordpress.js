@@ -1,5 +1,15 @@
 # Changelog
 
+## Navigation workspace — 2026-11-26
+
+- Added homepage selection, automatic/custom header menus, ordered page/post and URL links, and editable footer links/text.
+- Added private saves, saved navigation previews, explicit publication, unsaved-work guards and conflict recovery that preserves local input.
+- Added a searchable, paginated content picker and a shared native dialog with focus restoration for navigation and media.
+- Added semantic public menus, current-page indicators, mobile wrapping and keyboard menu ordering.
+- Added the navigation guide, API and routing documentation, updated the roadmap and prepared the contributor handoff for recoverable revision history.
+
+Validation: 40 core/API tests and three browser journeys cover publishing, media and navigation. The navigation journey checks private previews, homepage routing, order, safe links, conflicts, redirects, keyboard focus, narrow layouts and axe checks on the tested admin/public fixtures. Migration tests preserve v2 content and media references. The project remains pre-alpha; these checks do not establish full accessibility conformance or production readiness.
+
 ## Navigation backend checkpoint — 2026-11-25
 
 - Added separate draft/published navigation, ordered content/URL links, footer text and selected homepages.

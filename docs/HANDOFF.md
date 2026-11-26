@@ -28,9 +28,11 @@ Use Node 24 and `npm ci`. README.md is the quick start; OPERATIONS.md explains t
 
 **M2 media library is implemented**; [ADR 0002](decisions/0002-media-library.md) covers the design and [MEDIA.md](MEDIA.md) explains the workflow. Server `media.ts` handles uploads/routes, `media-repository.ts` handles usage/quota and publication validation, and `media-storage.ts` provides local storage. Migration 2 preserves v1 sites. Admin `media.tsx` owns the searchable library, image details and picker; `createBlockConfig` accepts the picker without importing the admin into shared blocks. Tests exercise decoding limits (including APNG), privacy, snapshots, referenced deletion, storage failure/recovery, upgrade preservation and real browser use. Each browser project uses its own temporary installation.
 
-In progress: **M2 navigation and homepage selection**. The backend checkpoint implements [ADR 0003](decisions/0003-navigation-and-routing.md): ordered links, independent navigation snapshots, homepage routing, canonical URLs and slug-change redirects. `navigation-repository.ts` owns these rules, `packages/core/src/navigation.ts` owns the contract, and migration 3 preserves v2 sites. Eight new integration tests cover validation, draft privacy, conflicts, routing, history, persistence and upgrades. Next add the Navigation workspace and its vertical browser journey before marking the milestone complete.
+**M2 navigation and homepage selection is implemented**. [ADR 0003](decisions/0003-navigation-and-routing.md) defines ordered links, independent navigation snapshots, homepage routing, canonical URLs and slug-change redirects. `navigation-repository.ts` owns these rules, `packages/core/src/navigation.ts` owns the contract, and migration 3 preserves v2 sites. The lazy-loaded `apps/admin/src/navigation.tsx` owns editing, picking content, private preview and conflict handling. `dialog.tsx` is shared with media. Eight integration tests cover validation, draft privacy, conflicts, routing, history, persistence and upgrades; the navigation browser journey covers the complete owner workflow, keyboard actions, mobile layouts and fixture accessibility. See [NAVIGATION.md](NAVIGATION.md) for user-facing rules and limits.
 
-Independent small tasks: accessible quote-block improvements, public blog pagination, navigation configuration, and export-format design. Larger changes need an ADR and the acceptance criteria in ROADMAP.md.
+Next: **recoverable content revision history**. Write an ADR for bounded history, explicit restoration into a private draft, conflict checks, media references, retention, upgrade preservation and recovery tests. A revision counter alone does not protect users from accidental saved edits. Keep restoration separate from publishing and preserve the live snapshot until the owner publishes deliberately.
+
+Independent small tasks: accessible quote-block improvements, public blog pagination, and export-format design. Larger changes need an ADR and the acceptance criteria in ROADMAP.md.
 
 ## Known limitations and decisions
 
@@ -39,7 +41,7 @@ Independent small tasks: accessible quote-block improvements, public blog pagina
 - Media storage is local disk with fixed quotas and no original retention or responsive variants. Publication-aware no-store access favors privacy over CDN caching. Pending deletions recover on restart; persistent storage errors need operator attention.
 - No compatibility claim for WordPress plugins, PHP themes or exports.
 - A revision counter detects conflicts; it does not preserve historical snapshots.
-- The public menu is derived from at most six published pages. Public blog and sitemap queries are not yet paginated.
+- Navigation supports flat menus with 20 links each; automatic mode uses at most six published pages plus Journal. No nested menus or manual redirect editor. Public blog and sitemap queries are not yet paginated.
 - Theme settings change the public site immediately; content changes require publication.
 - The root admin component should be split into feature modules as features grow. Do not turn this early foundation into a single expanding file.
 - Root dependency management is centralized for the initial workspace. Before publishing independent packages, move runtime dependencies into each package and define version/support policies.

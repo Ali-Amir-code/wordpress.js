@@ -19,13 +19,13 @@ flowchart LR
 
 ## Boundaries
 
-| Directory         | Responsibility                                                              |
-| ----------------- | --------------------------------------------------------------------------- |
-| `packages/core`   | Schema version, block validation, content/settings types, starter documents |
-| `packages/blocks` | Reusable components, editor field definitions, public rendering             |
-| `apps/server`     | HTTP routes, authentication, persistence, publication and metadata          |
-| `apps/admin`      | Setup, login, overview, pages/posts, editor and site settings               |
-| `tests`           | API integration and real-browser publishing journeys                        |
+| Directory         | Responsibility                                                                   |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `packages/core`   | Schema version, block validation, content/settings types, starter documents      |
+| `packages/blocks` | Reusable components, editor field definitions, public rendering                  |
+| `apps/server`     | HTTP routes, authentication, persistence, publication and metadata               |
+| `apps/admin`      | Setup, login, overview, pages/posts, editor, media, navigation and site settings |
+| `tests`           | API integration and real-browser publishing journeys                             |
 
 The server never trusts editor data. The contract allowlists block types, fields, lengths and URL schemes. Content is text and structured props, not executable HTML. React escapes text during rendering. Unknown schema versions are rejected, not silently coerced.
 
@@ -33,7 +33,15 @@ The server never trusts editor data. The contract allowlists block types, fields
 
 Each document has a stable UUID, kind (`page` or `post`), working title/slug/description/blocks, revision counter, timestamps and an optional **published snapshot**. Draft updates increment the revision. Publishing copies the whole draft, including its slug and metadata, into the public snapshot atomically. Public queries read only snapshots. Unpublishing removes the snapshot without discarding the draft.
 
-Updates and publication actions carry the expected revision. Stale writers receive HTTP 409, preventing one browser tab from silently overwriting another. The first version does not retain historical revisions; a revision counter is not a revision-history feature. Slugs are validated and unique within each kind; published slugs are also unique. Pages use `/:slug` (`home` maps to `/`); posts use `/blog/:slug`. System routes are reserved. Changing a published slug removes the old URL on republish; redirects are later work.
+Updates and publication actions carry the expected revision. Stale writers receive HTTP 409, preventing one browser tab from silently overwriting another. The first version does not retain historical revisions; a revision counter is not a revision-history feature. Slugs are validated and unique within each kind; published slugs are also unique. Pages use `/:slug`, with the selected homepage at `/`; posts use `/blog/:slug`. System routes are reserved.
+
+## Navigation and routing
+
+`NavigationRepository` owns independent draft/public menu snapshots, ordered content-ID or URL links, footer text and a homepage selection. Automatic mode retains the original six-page-plus-Journal menu. Explicit homepage selection overrides the legacy `home` slug rule. The same path resolver supplies public links, canonical metadata, sitemap entries and admin live links. Navigation publishes atomically with revision checks and validates that active destinations are published.
+
+Content publication records former natural paths against stable content IDs inside the same transaction. Historical addresses resolve directly to the current canonical path (308); a selected homepage's natural slug temporarily redirects to `/` (302). Current published addresses win over history, unpublished targets yield 404, and redirects use no-store to avoid stale destinations when paths are reclaimed. Migration 3 preserves existing sites and starts with automatic navigation. See [ADR 0003](decisions/0003-navigation-and-routing.md).
+
+The admin lazy-loads the navigation feature and shares a native dialog component with the media library. Private preview renders the saved navigation draft and published page content. Public menus are semantic lists with labeled navigation landmarks and current-page indicators; they require no browser JavaScript.
 
 ## Authentication and trust
 

@@ -18,6 +18,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  Waypoints,
 } from 'lucide-react';
 import {
   contentPath,
@@ -30,6 +31,7 @@ import './styles.css';
 
 const Editor = lazy(() => import('./editor'));
 const MediaLibrary = lazy(() => import('./media'));
+const NavigationWorkspace = lazy(() => import('./navigation'));
 type User = { id: number; name: string; email: string };
 type Overview = {
   settings: SiteSettings;
@@ -272,15 +274,19 @@ function App() {
         <Editor id={route.slice(5)} siteUrl={overview?.siteUrl || location.origin} />
       </Suspense>
     );
-  const active = ['pages', 'posts', 'media', 'settings'].includes(route) ? route : 'overview';
+  const active = ['pages', 'posts', 'media', 'navigation', 'settings'].includes(route)
+    ? route
+    : 'overview';
   const nav = [
     { route: 'overview', label: 'Overview', icon: LayoutDashboard },
     { route: 'pages', label: 'Pages', icon: FileText },
     { route: 'posts', label: 'Posts', icon: BookOpen },
     { route: 'media', label: 'Media', icon: Images },
+    { route: 'navigation', label: 'Navigation', icon: Waypoints },
     { route: 'settings', label: 'Site settings', icon: Settings2 },
   ];
   async function logout() {
+    if (navigation.confirmLeave && !navigation.confirmLeave()) return;
     try {
       await api('/auth/logout', { method: 'POST', body: {} });
       setUser(null);
@@ -397,6 +403,10 @@ function App() {
           ) : active === 'media' ? (
             <Suspense fallback={<Loading />}>
               <MediaLibrary />
+            </Suspense>
+          ) : active === 'navigation' ? (
+            <Suspense fallback={<Loading />}>
+              <NavigationWorkspace siteUrl={overview?.siteUrl || location.origin} />
             </Suspense>
           ) : active === 'settings' ? (
             <Settings

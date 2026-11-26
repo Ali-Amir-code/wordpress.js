@@ -23,7 +23,7 @@ Milestones describe acceptance criteria, not promised dates. The current impleme
 
 - [x] Media backend: validated image uploads, size limits, metadata, alt text, transformations, deletion references, storage adapter and upgrade/recovery tests.
 - [x] Media workflow: searchable admin library, metadata editing, native-dialog editor picker and browser upload → select → publish journey. Automated accessibility checks cover library/details fixtures; broader review remains in M3.
-- Navigation: ordered menus and links, homepage selection, footer editing and redirects on slug changes.
+- [x] Navigation: ordered header/footer menus, content-ID and custom links, selected homepages, private drafts/preview, conflict protection and redirects on published slug changes. Includes upgrade preservation and a browser journey; nested menus and manual redirects remain future work.
 - Content: rich text with constrained output, taxonomy, pagination, scheduled publication and recoverable revision history.
 - Forms: accessible fields, server validation, spam protection, consent/retention controls and delivery retries. No email credentials in browser bundles.
 - Theme tokens and reusable patterns: schema validation, migration, preview and safe switching.

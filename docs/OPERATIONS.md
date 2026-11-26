@@ -63,14 +63,16 @@ Only images referenced by published content can be fetched anonymously. Images u
 
 ## Current limits
 
-One site, one owner, one server process. No password reset, MFA, user invitations, revision-history restoration, plugin installer, export/import UI, content deletion or automatic backups. Public navigation shows the first six published pages; homepage uses `home`. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
+One site, one owner, one server process. No password reset, MFA, user invitations, revision-history restoration, plugin installer, export/import UI, content deletion or automatic backups. Navigation supports flat header/footer menus (20 links each), an explicit homepage choice and automatic slug-change redirects. Automatic mode retains six published pages plus Journal. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
 
 ## Troubleshooting
 
 - **npm missing / wrong Node version:** run `nvm use`; do not use a system Node 12/18 installation.
 - **403 on saving or login:** make the browser origin exactly match `ADMIN_ORIGIN`, including port. Restart after changing `.env`.
 - **409 while saving:** another save changed the revision, or the slug is already in use. Preserve unsaved text and reload, or choose a unique slug.
-- **Blank public homepage:** publish the page with slug `home`.
+- **Blank public homepage:** publish the page with slug `home`, or choose a published page in Navigation and publish navigation.
+- **Cannot unpublish a homepage:** first publish a different homepage choice in Navigation, or return to the original `home` rule.
+- **Navigation will not publish:** active menu destinations must be published; remove the link or publish its page/post first. A saved menu draft does not change the public site.
 - **Preview missing recent edits:** preview shows the saved draft; click Save draft first.
 - **Editor unavailable after build:** run the root `npm run build` and start from this checkout; both `dist/admin` and `dist/site.css` are required.
 - **Playwright browser missing:** run `npx playwright install chromium`; Linux CI may also need `--with-deps`.

@@ -16,8 +16,13 @@ export default defineConfig({
   projects: [
     { name: 'publishing', testMatch: 'publishing.spec.ts' },
     { name: 'media', testMatch: 'media.spec.ts', use: { baseURL: 'http://127.0.0.1:3101' } },
+    {
+      name: 'navigation',
+      testMatch: 'navigation.spec.ts',
+      use: { baseURL: 'http://127.0.0.1:3102' },
+    },
   ],
-  webServer: [3100, 3101].map((port) => ({
+  webServer: [3100, 3101, 3102].map((port) => ({
     command: `node scripts/e2e-server.mjs ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: false,

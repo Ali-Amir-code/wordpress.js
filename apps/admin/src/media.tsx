@@ -1,14 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ImagePlus,
-  Images,
-  Search,
-  Trash2,
-  Upload,
-  X,
-} from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, ImagePlus, Images, Search, Trash2, Upload } from 'lucide-react';
 import {
   MEDIA_LIMITS,
   mediaPath,
@@ -18,6 +9,7 @@ import {
   type MediaSelection,
 } from '@wordpressjs/core';
 import { api, message, navigation } from './api';
+import { Dialog } from './dialog';
 import './media.css';
 
 function size(bytes: number) {
@@ -32,49 +24,6 @@ function ErrorNotice({ error }: { error: string }) {
     </div>
   ) : null;
 }
-function Dialog({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: ReactNode;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDialogElement>(null),
-    titleId = useId();
-  useEffect(() => {
-    const dialog = ref.current!;
-    const invoker = document.activeElement;
-    dialog.showModal();
-    return () => {
-      dialog.close();
-      // React removes the dialog before effect cleanup; explicitly return keyboard focus.
-      if (invoker instanceof HTMLElement && invoker.isConnected)
-        invoker.focus({ preventScroll: true });
-    };
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className="media-dialog"
-      aria-labelledby={titleId}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-    >
-      <header className="media-dialog-header">
-        <h2 id={titleId}>{title}</h2>
-        <button type="button" className="icon-button" aria-label="Close dialog" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </header>
-      {children}
-    </dialog>
-  );
-}
-
 function MediaBrowser({
   onChoose,
   onUploaded,
