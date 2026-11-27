@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import './dialog.css';
 
@@ -24,11 +25,18 @@ export function Dialog({
         invoker.focus({ preventScroll: true });
     };
   }, []);
-  return (
+  // Fields may already be inside a form. Keep dialogs out of that DOM and isolate
+  // their interactions from the canvas while preserving React context and focus.
+  return createPortal(
     <dialog
       ref={ref}
       className="workspace-dialog"
       aria-labelledby={titleId}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+      onSubmit={(event) => event.stopPropagation()}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -41,6 +49,7 @@ export function Dialog({
         </button>
       </header>
       {children}
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }

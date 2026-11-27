@@ -660,7 +660,7 @@ test('v1 upgrade preserves owner, sessions, settings, draft and published snapsh
   assert.equal(migrated.get(id).revision, 7);
   assert.equal(migrated.get(id).published?.description, 'Keep my content');
   assert.ok(migrated.session(tokenHash(session)));
-  assert.equal(migrated.db.prepare('PRAGMA user_version').get()?.user_version, 4);
+  assert.equal(migrated.db.prepare('PRAGMA user_version').get()?.user_version, 5);
   migrated.close();
   const reopened = new Repository(path);
   assert.equal(reopened.get(id).title, 'Existing site');

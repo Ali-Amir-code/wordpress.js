@@ -29,6 +29,8 @@ flowchart LR
 
 The server never trusts editor data. The contract allowlists block types, fields, lengths and URL schemes. Content is text and structured props, not executable HTML. React escapes text during rendering. Unknown schema versions are rejected, not silently coerced.
 
+Text sections accept legacy strings or a versioned, bounded rich-text JSON tree. Core validates node/mark types, attributes, links, aggregate characters and list depth before persistence. Shared blocks map these nodes to fixed React elements; public rendering does not import Tiptap or parse HTML. The lazy admin text dialog uses the Tiptap packages already present through Puck, with a matching extension allowlist, local history, plain-text-only clipboard handling and a transaction validation filter. Apply text updates Puck; draft save and publication remain separate. See [ADR 0005](decisions/0005-constrained-rich-text.md).
+
 ## Content and publication
 
 Each document has a stable UUID, kind (`page` or `post`), working title/slug/description/blocks, revision counter, timestamps and an optional **published snapshot**. Draft updates increment the revision. Publishing copies the whole draft, including its slug and metadata, into the public snapshot atomically. Public queries read only snapshots. Unpublishing removes the snapshot without discarding the draft.
@@ -38,6 +40,8 @@ Updates, restoration and publication actions carry the expected revision. Stale 
 `RevisionRepository` records immutable saved snapshots in the content transaction and retains the latest 30 versions per entry plus an older current publication. History IDs are separate from content concurrency counters. Restoring validates the snapshot and managed media, replaces only the working draft, and records a new version atomically; public snapshots and routing remain unchanged until publication. Retained versions hold their own media references, released when history expires. Migration 4 preserves existing tables and captures draft/publication upgrade baselines. See [ADR 0004](decisions/0004-content-revisions.md).
 
 The editor lazy-loads a history dialog with metadata/block-change comparison, private previews and explicit restoration. Unsaved edits block restoration; successful restoration resets external fields and remounts Puck from the restored document. This also resets Puck's undo stack, avoiding old internal editor state overwriting recovered content. History is bounded recovery, not autosave or complete backup tooling.
+
+Content schema 1 remains readable and restorable with plain Text strings. Schema 2 also permits rich text. Existing documents upgrade only when an applied text edit needs the new format; opening a document does not create unsaved changes. Database migration 5 changes only the capability marker so older binaries reject databases that may contain rich text. It preserves all existing rows and snapshots byte for byte.
 
 ## Navigation and routing
 

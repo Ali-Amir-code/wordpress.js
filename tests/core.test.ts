@@ -37,7 +37,7 @@ test('URL allowlist rejects executable, ambiguous and control-character links', 
 });
 test('documents reject unknown schemas, unknown props, duplicate IDs and excessive content', () => {
   const document = starterDocument();
-  assert.equal(documentSchema.safeParse({ ...document, schemaVersion: 2 }).success, false);
+  assert.equal(documentSchema.safeParse({ ...document, schemaVersion: 3 }).success, false);
   assert.equal(
     documentSchema.safeParse({ ...document, content: [document.content[0], document.content[0]] })
       .success,

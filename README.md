@@ -37,7 +37,7 @@ Content is stored in `data/wordpressjs.sqlite` and survives restarts. Setup has 
 | Site identity and SEO  | Name, description, language, three palettes, canonical/Open Graph tags, sitemap and robots                  |
 | Contributor foundation | Typed workspaces, integration tests, browser tests, CI, dependency updates, architecture and agent guides   |
 
-Built-in blocks: **Hero, Text, Features, Library image, Image URL, Call to action, Quote, Spacer**. The editor includes a small business starter layout. Text is plain text; rich text, forms, custom themes, multiple users and plugins are future milestones.
+Built-in blocks: **Hero, Text, Features, Library image, Image URL, Call to action, Quote, Spacer**. The editor includes a small business starter layout. Text sections support headings, bold, italic, underline, links and lists through **Edit text**. Other block fields remain plain text. Forms, custom themes, multiple users and plugins are future milestones. See the [text formatting guide](docs/RICH-TEXT.md).
 
 Open **Media** to upload a JPEG, PNG or WebP, then add a **Library image** block in the editor. Images stay private until published content uses them. [Media guide](docs/MEDIA.md) explains image details, limits and deletion.
 
@@ -50,7 +50,7 @@ Select **Version history** in the editor to compare or preview earlier saved wor
 ```sh
 npm run check                 # formatting, types, integration tests, production build
 npx playwright install chromium
-npm run test:e2e              # publishing, media, navigation and version history journeys
+npm run test:e2e              # publishing, media, navigation, version history and rich text
 ```
 
 `npm run format` formats the project. `npm run build && npm start` runs the built application at **http://localhost:3000/admin/**; if you created `.env`, set `ADMIN_ORIGIN` to that origin for this mode. [Operations guide](docs/OPERATIONS.md) explains the two development ports and production HTTPS requirements.
@@ -85,6 +85,7 @@ docs             Research, architecture, roadmap and handoff
 - [Using the media library](docs/MEDIA.md)
 - [Navigation and homepages](docs/NAVIGATION.md)
 - [Version history and restoration](docs/REVISIONS.md)
+- [Formatting text](docs/RICH-TEXT.md)
 - [Running and configuring the app](docs/OPERATIONS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Instructions for coding agents](AGENTS.md)

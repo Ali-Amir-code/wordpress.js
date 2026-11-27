@@ -204,6 +204,36 @@
 .site-prose p {
   line-height: 1.9;
 }
+.site-rich-text {
+  overflow-wrap: anywhere;
+}
+.site-rich-text p,
+.site-rich-text h2,
+.site-rich-text h3 {
+  white-space: pre-wrap;
+}
+.site-rich-text h3 {
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.site-rich-text a {
+  color: var(--site-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.site-rich-text ul,
+.site-rich-text ol {
+  padding-left: 28px;
+  line-height: 1.9;
+}
+.site-rich-text li > p {
+  margin: 6px 0;
+}
+.site-rich-text li > ul,
+.site-rich-text li > ol {
+  margin: 6px 0;
+}
 .site-image img {
   height: auto;
   width: 100%;

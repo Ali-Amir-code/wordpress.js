@@ -1,12 +1,17 @@
 import type { Config, CustomField } from '@puckeditor/core';
-import type { BlockProps, MediaSelection } from '@wordpressjs/core';
+import {
+  richTextFromPlainText,
+  type BlockProps,
+  type MediaSelection,
+  type RichText,
+} from '@wordpressjs/core';
 import { BlockView } from './index';
 
-const baseConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
+const baseConfig: Config<Omit<BlockProps, 'MediaImage' | 'Text'>> = {
   root: { fields: {}, render: ({ children }) => <div className="site">{children}</div> },
   categories: {
     layout: { title: 'Sections', components: ['Hero', 'Features', 'CallToAction'] },
-    content: { title: 'Content', components: ['Text', 'Image', 'Quote', 'Spacer'] },
+    content: { title: 'Content', components: ['Image', 'Quote', 'Spacer'] },
   },
   components: {
     Hero: {
@@ -50,17 +55,6 @@ const baseConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
             },
           }}
         />
-      ),
-    },
-    Text: {
-      label: 'Text section',
-      fields: {
-        heading: { type: 'text', label: 'Heading' },
-        text: { type: 'textarea', label: 'Text (blank line for a new paragraph)' },
-      },
-      defaultProps: { heading: 'A story worth sharing.', text: 'Start writing your story here.' },
-      render: ({ id, heading, text }) => (
-        <BlockView block={{ type: 'Text', props: { id, heading, text } }} />
       ),
     },
     Features: {
@@ -154,6 +148,7 @@ const baseConfig: Config<Omit<BlockProps, 'MediaImage'>> = {
 // The admin supplies the picker; shared blocks never import the admin or its API client.
 export function createBlockConfig(
   mediaField: CustomField<MediaSelection | null>,
+  textField: CustomField<string | RichText>,
 ): Config<BlockProps> {
   return {
     ...baseConfig,
@@ -163,6 +158,17 @@ export function createBlockConfig(
     },
     components: {
       ...baseConfig.components,
+      Text: {
+        label: 'Text section',
+        fields: { heading: { type: 'text', label: 'Heading' }, text: textField },
+        defaultProps: {
+          heading: 'A story worth sharing.',
+          text: richTextFromPlainText('Start writing your story here.'),
+        },
+        render: ({ id, heading, text }) => (
+          <BlockView block={{ type: 'Text', props: { id, heading, text } }} />
+        ),
+      },
       MediaImage: {
         label: 'Library image',
         fields: { asset: mediaField },

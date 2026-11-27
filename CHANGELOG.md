@@ -1,5 +1,15 @@
 # Changelog
 
+## Constrained rich-text editing — 2026-11-27
+
+- Added a focused Text-section editor with headings, bold/italic/underline, validated links, nested lists and local undo/redo.
+- Added plain-text clipboard import, unapplied-edit guards, keyboard controls and Apply text followed by explicit draft save/publication.
+- Added a bounded, strict JSON contract and shared semantic React rendering without stored HTML or public editor JavaScript.
+- Added content schema 2 and database migration 5 while preserving legacy content and all retained versions. Both old and formatted snapshots remain restorable.
+- Declared exact direct Tiptap dependencies already installed through Puck; added the text guide, API/architecture documentation and contributor handoff.
+
+Validation: 55 core/API tests and five browser journeys cover the existing modules and rich text. New checks exercise hostile links/attributes, size/depth limits, literal legacy text, complete upgrade preservation, clipboard privacy, formatting, cancellation, undo/redo, publication isolation, old/new restoration, keyboard behavior and narrow layouts. Accessibility checks cover the tested dialog/public fixtures; wider reviews and backup/restore tooling remain release gates.
+
 ## Version history workspace — 2026-11-27
 
 - Added a lazy-loaded history dialog with saved-version browsing, metadata/block comparisons and complete private previews.

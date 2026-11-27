@@ -415,7 +415,7 @@ test('migration 3 preserves all v2 content, media references, settings, accounts
   try {
     assert.equal(
       (repo.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version,
-      4,
+      5,
     );
     assert.deepEqual(
       tables.map((name) => repo.db.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all()),

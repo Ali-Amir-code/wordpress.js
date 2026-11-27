@@ -1,4 +1,5 @@
 import { mediaPath, type Block, type ContentDocument } from '@wordpressjs/core';
+import { RichTextView } from './rich-text';
 
 export function BlockView({ block }: { block: Block }) {
   switch (block.type) {
@@ -44,9 +45,11 @@ export function BlockView({ block }: { block: Block }) {
       return (
         <section id={block.props.id} className="site-section site-prose site-wrap">
           {block.props.heading && <h2>{block.props.heading}</h2>}
-          {block.props.text.split(/\n\s*\n/).map((part, index) => (
-            <p key={index}>{part}</p>
-          ))}
+          {typeof block.props.text === 'string' ? (
+            block.props.text.split(/\n\s*\n/).map((part, index) => <p key={index}>{part}</p>)
+          ) : (
+            <RichTextView value={block.props.text} />
+          )}
         </section>
       );
     case 'Features':

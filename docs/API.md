@@ -106,7 +106,7 @@ The selected asset must exist. The server replaces supplied dimensions with the 
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "root": { "props": {} },
   "content": [
     {
@@ -122,6 +122,33 @@ The selected asset must exist. The server replaces supplied dimensions with the 
 ```
 
 The authoritative field definitions are in `packages/core/src/index.ts`. IDs must be unique within a document. The API rejects unknown blocks, unknown fields, unsupported schema versions and unsafe URL schemes. Puck's working editor state is converted into this contract; arbitrary Puck configurations cannot be posted to the server.
+
+Content schema 1 still accepts plain Text strings. Schema 2 accepts those strings and the following structured value for `Text.props.text`; other block fields remain plain text. Existing content and retained snapshots are not rewritten on upgrade. A document containing formatted Text must declare schema 2. Rich-text definitions are in `packages/core/src/rich-text.ts`.
+
+```json
+{
+  "version": 1,
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        { "type": "text", "text": "Thoughtful work", "marks": [{ "type": "bold" }] },
+        { "type": "text", "text": " — " },
+        {
+          "type": "text",
+          "text": "contact us",
+          "marks": [{ "type": "link", "attrs": { "href": "/contact" } }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Allowed nodes: `paragraph`, `heading` with `attrs.level` 2 or 3, `bulletList`, `orderedList` with integer `attrs.start` 1–100000, `listItem`, `text` and `hardBreak`. Lists contain 1–100 list items; each item begins with a paragraph and contains only paragraphs or nested lists. Paragraphs/headings contain inline text/hard breaks; an empty paragraph may omit `content`. The root contains 1–200 top-level blocks. Marks are `bold`, `italic`, `underline` and `link` with only `attrs.href`; duplicate mark types are rejected. Unknown fields/attributes are rejected at every level.
+
+Each rich-text tree is bounded to 2,000 nodes, three list levels, and 12,000 aggregate UTF-16 text units (each hard break counts as one; structural paragraph boundaries do not count). Link URLs have a 2048-character limit and use the shared protocol allowlist. The complete request remains limited to 512 KiB. Invalid trees return 400 without changing content/history. Restore/preview revalidate stored snapshots, and unsupported retained content returns 409. See [ADR 0005](decisions/0005-constrained-rich-text.md).
 
 ## Public URLs
 

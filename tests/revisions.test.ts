@@ -376,7 +376,7 @@ test('migration 4 preserves v3 state, captures both baselines and retains media 
   old.exec('DROP TABLE revision_media; DROP TABLE content_revisions; PRAGMA user_version = 3;');
   old.close();
   const migrated = new Repository(f.path);
-  assert.equal(migrated.db.prepare('PRAGMA user_version').get()!.user_version, 4);
+  assert.equal(migrated.db.prepare('PRAGMA user_version').get()!.user_version, 5);
   assert.deepEqual(
     tables.map((name) => migrated.db.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all()),
     before,

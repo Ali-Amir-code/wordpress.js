@@ -31,6 +31,8 @@ Images used by retained versions cannot be deleted. Image details show how many 
 
 On upgrade to database schema 4, existing drafts and publications become **Draft at upgrade** and **Publication at upgrade** entries. Earlier overwritten content cannot be reconstructed. Upgrading preserves existing accounts, content, media, navigation and revision counters. Back up the stopped data directory first; see [operations](OPERATIONS.md).
 
+The subsequent schema 5 upgrade adds rich-text support without rewriting these snapshots. Both legacy plain text and formatted Text sections remain previewable and restorable.
+
 This is saved-version recovery for pages and posts. It does not automatically save browser edits, restore site settings or menus, provide a text-level diff, or replace a complete backup. A failed or missing database still needs a separate backup. Future content schema changes must continue to validate or migrate retained snapshots before restoring them.
 
 For contributors, see the [API](API.md#content-revision-api) and [design decision](decisions/0004-content-revisions.md).

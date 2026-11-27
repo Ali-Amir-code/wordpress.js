@@ -56,7 +56,7 @@ export class Repository {
     );
     const version = (this.db.prepare('PRAGMA user_version').get() as { user_version: number })
       .user_version;
-    if (version > 4) {
+    if (version > 5) {
       this.db.close();
       throw new Error(
         'Database is newer than this application. Upgrade the application before opening it.',
@@ -131,6 +131,9 @@ export class Repository {
         }
         this.db.exec('PRAGMA user_version = 4;');
       });
+    // Capability marker: older binaries must not open documents containing formatted text.
+    // Legacy drafts, publications and retained snapshots remain byte-for-byte unchanged.
+    if (version < 5) this.transaction(() => this.db.exec('PRAGMA user_version = 5;'));
   }
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');

@@ -25,7 +25,8 @@ Milestones describe acceptance criteria, not promised dates. The current impleme
 - [x] Media workflow: searchable admin library, metadata editing, native-dialog editor picker and browser upload → select → publish journey. Automated accessibility checks cover library/details fixtures; broader review remains in M3.
 - [x] Navigation: ordered header/footer menus, content-ID and custom links, selected homepages, private drafts/preview, conflict protection and redirects on published slug changes. Includes upgrade preservation and a browser journey; nested menus and manual redirects remain future work.
 - [x] Recoverable content history: bounded page/post versions, comparison and private preview, restoration as draft, conflict protection, retained-image references and upgrade preservation. Includes an editor browser journey; autosave and text-level diffs remain future work.
-- Content: rich text with constrained output, taxonomy, pagination and scheduled publication.
+- [x] Constrained rich text: Text-section paragraphs/headings, inline styles, links, bounded nested lists, semantic rendering, plain-text paste, local undo/redo and private save/publication. Preserves legacy documents and historical snapshots; includes upgrade and browser coverage. Tables, inline media and formatting in other block fields remain future work.
+- Content: taxonomy, pagination and scheduled publication.
 - Forms: accessible fields, server validation, spam protection, consent/retention controls and delivery retries. No email credentials in browser bundles.
 - Theme tokens and reusable patterns: schema validation, migration, preview and safe switching.
 - Portable export/import: versioned bundle, asset references, validation, dry run and round-trip tests.

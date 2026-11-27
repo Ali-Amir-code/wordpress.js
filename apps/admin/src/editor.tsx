@@ -10,10 +10,14 @@ import {
 import { ArrowLeft, ArrowUpRight, Check, Clock3, Eye, Save, Settings2 } from 'lucide-react';
 import { api, message, navigation, contentSignature } from './api';
 import { MediaField } from './media';
+import { RichTextField } from './rich-text-field';
 import '@puckeditor/core/no-external.css';
 import '@wordpressjs/blocks/styles.css';
 
-const blockConfig = createBlockConfig({ type: 'custom', label: 'Image', render: MediaField });
+const blockConfig = createBlockConfig(
+  { type: 'custom', label: 'Image', render: MediaField },
+  { type: 'custom', label: 'Text', render: RichTextField },
+);
 const RevisionHistory = lazy(() => import('./revisions'));
 
 export default function Editor({ id, siteUrl }: { id: string; siteUrl: string }) {
@@ -283,7 +287,15 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
           config={blockConfig}
           data={canvasData}
           onChange={(data: Data<BlockProps>) =>
-            setDocument({ schemaVersion: 1, content: data.content, root: { props: {} } })
+            setDocument({
+              schemaVersion: data.content.some(
+                (block) => block.type === 'Text' && typeof block.props.text !== 'string',
+              )
+                ? 2
+                : entry.document.schemaVersion,
+              content: data.content,
+              root: { props: {} },
+            })
           }
           headerTitle="Your canvas"
           headerPath={draftPath}

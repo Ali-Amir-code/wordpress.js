@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { mediaSelectionSchema } from './media';
 import { isSafeUrl } from './urls';
+import { richTextSchema } from './rich-text';
 export * from './media';
 export * from './navigation';
 export * from './revisions';
+export * from './rich-text';
 export { isSafeUrl } from './urls';
 
 const text = (max: number) => z.string().max(max);
@@ -44,7 +46,9 @@ export const blockSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('Text'),
-      props: z.object({ id, heading: text(200), text: text(12000) }).strict(),
+      props: z
+        .object({ id, heading: text(200), text: z.union([text(12000), richTextSchema]) })
+        .strict(),
     })
     .strict(),
   z
@@ -89,7 +93,7 @@ export const blockSchema = z.discriminatedUnion('type', [
 
 export const documentSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.union([z.literal(1), z.literal(2)]),
     content: z.array(blockSchema).max(100),
     root: z.object({ props: z.object({}).strict() }).strict(),
   })
@@ -97,6 +101,12 @@ export const documentSchema = z
   .refine(
     (doc) => new Set(doc.content.map((block) => block.props.id)).size === doc.content.length,
     'Block IDs must be unique.',
+  )
+  .refine(
+    (doc) =>
+      doc.schemaVersion === 2 ||
+      doc.content.every((block) => block.type !== 'Text' || typeof block.props.text === 'string'),
+    'Formatted text requires document schema version 2.',
   );
 export type Block = z.infer<typeof blockSchema>;
 export type ContentDocument = z.infer<typeof documentSchema>;
@@ -145,13 +155,13 @@ export const defaultSettings: SiteSettings = {
   language: 'en',
 };
 export const emptyDocument = (): ContentDocument => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   content: [],
   root: { props: {} },
 });
 export function starterDocument(): ContentDocument {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     root: { props: {} },
     content: [
       {

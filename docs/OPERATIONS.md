@@ -49,7 +49,7 @@ The server loads `.env` using Node's built-in environment-file support. Environm
 
 Run one server process per SQLite database on persistent local disk. The database uses WAL, so copying only the main `.sqlite` file while the app is running is **not** a safe backup. For the initial manual workflow: stop the process gracefully, copy the entire data directory to a protected location, restart, and verify a restore into a separate test instance. Backups include password hashes and session records; protect them as secrets. Automated online backups and session invalidation on restore are still planned.
 
-Migrations run at startup using `PRAGMA user_version`. The current schema is version 4. Migration 2 adds media tables; migration 3 adds navigation snapshots and redirect history; migration 4 adds retained content versions and their media references, capturing current drafts and publications as upgrade baselines. Existing owners, sessions, settings, content and media references are preserved. Navigation starts in automatic mode with the original `home` homepage rule. A database from a newer schema version is rejected. Never delete a user's database to fix migration failures. Back up before upgrades. Rolling back to an older schema's binary requires restoring the complete pre-upgrade backup; do not downgrade `user_version` by hand.
+Migrations run at startup using `PRAGMA user_version`. The current schema is version 5. Migration 2 adds media tables; migration 3 adds navigation snapshots and redirect history; migration 4 adds retained content versions and their media references, capturing current drafts and publications as upgrade baselines. Migration 5 marks rich-text support without rewriting any existing rows or snapshots; older binaries reject the newer database. Existing owners, sessions, settings, content and media references are preserved. Navigation starts in automatic mode with the original `home` homepage rule. A database from a newer schema version is rejected. Never delete a user's database to fix migration failures. Back up before upgrades. Rolling back to an older schema's binary requires restoring the complete pre-upgrade backup; do not downgrade `user_version` by hand.
 
 ## Media storage
 
@@ -63,7 +63,7 @@ Only images referenced by published content can be fetched anonymously. Images u
 
 ## Current limits
 
-One site, one owner, one server process. No password reset, MFA, user invitations, plugin installer, export/import UI, content deletion or automatic backups. Content history provides bounded saved-version recovery; it does not replace backups or automatically save browser edits. See [version history](REVISIONS.md). Navigation supports flat header/footer menus (20 links each), an explicit homepage choice and automatic slug-change redirects. Automatic mode retains six published pages plus Journal. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
+One site, one owner, one server process. No password reset, MFA, user invitations, plugin installer, export/import UI, content deletion or automatic backups. Content history provides bounded saved-version recovery; it does not replace backups or automatically save browser edits. See [version history](REVISIONS.md). Navigation supports flat header/footer menus (20 links each), an explicit homepage choice and automatic slug-change redirects. Automatic mode retains six published pages plus Journal. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Text sections support bounded structured rich text; other block fields remain plain text. Arbitrary HTML is unsupported. See [text formatting](RICH-TEXT.md).
 
 ## Troubleshooting
 
@@ -74,5 +74,6 @@ One site, one owner, one server process. No password reset, MFA, user invitation
 - **Cannot unpublish a homepage:** first publish a different homepage choice in Navigation, or return to the original `home` rule.
 - **Navigation will not publish:** active menu destinations must be published; remove the link or publish its page/post first. A saved menu draft does not change the public site.
 - **Preview missing recent edits:** preview shows the saved draft; click Save draft first.
+- **Formatted text missing from preview:** select Apply text in the text dialog, then Save draft on the page. Publishing is a separate action.
 - **Editor unavailable after build:** run the root `npm run build` and start from this checkout; both `dist/admin` and `dist/site.css` are required.
 - **Playwright browser missing:** run `npx playwright install chromium`; Linux CI may also need `--with-deps`.
