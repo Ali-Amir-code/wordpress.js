@@ -24,17 +24,18 @@ Content is stored in `data/wordpressjs.sqlite` and survives restarts. Setup has 
 
 ## What works today
 
-| Area                   | Implemented                                                                                               |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| Setup and access       | Installation key, one owner, password login, expiring sessions and logout                                 |
-| Content                | Pages and posts, search, publication filters, paginated admin lists, unique slugs                         |
-| Visual editor          | Puck drag-and-drop, undo/redo, viewport previews, eight validated blocks                                  |
-| Media                  | Image uploads, optimization, searchable library, alt text/captions, editor picker and safe deletion       |
-| Navigation             | Ordered header/footer links, homepage selection, private previews and automatic redirects on slug changes |
-| Publishing             | Save draft, private saved preview, publish/unpublish, separate public snapshots, stale-write protection   |
-| Public website         | Shared block rendering, homepage, pages, journal index and posts; no frontend JavaScript required         |
-| Site identity and SEO  | Name, description, language, three palettes, canonical/Open Graph tags, sitemap and robots                |
-| Contributor foundation | Typed workspaces, integration tests, browser tests, CI, dependency updates, architecture and agent guides |
+| Area                   | Implemented                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Setup and access       | Installation key, one owner, password login, expiring sessions and logout                                   |
+| Content                | Pages and posts, search, publication filters, paginated admin lists, unique slugs                           |
+| Visual editor          | Puck drag-and-drop, undo/redo, viewport previews, eight validated blocks                                    |
+| Media                  | Image uploads, optimization, searchable library, alt text/captions, editor picker and safe deletion         |
+| Navigation             | Ordered header/footer links, homepage selection, private previews and automatic redirects on slug changes   |
+| Publishing             | Save draft, private saved preview, publish/unpublish, separate public snapshots, stale-write protection     |
+| Version history        | Retained page/post versions, comparison, private previews, safe restoration and historical image protection |
+| Public website         | Shared block rendering, homepage, pages, journal index and posts; no frontend JavaScript required           |
+| Site identity and SEO  | Name, description, language, three palettes, canonical/Open Graph tags, sitemap and robots                  |
+| Contributor foundation | Typed workspaces, integration tests, browser tests, CI, dependency updates, architecture and agent guides   |
 
 Built-in blocks: **Hero, Text, Features, Library image, Image URL, Call to action, Quote, Spacer**. The editor includes a small business starter layout. Text is plain text; rich text, forms, custom themes, multiple users and plugins are future milestones.
 
@@ -42,12 +43,14 @@ Open **Media** to upload a JPEG, PNG or WebP, then add a **Library image** block
 
 Open **Navigation** to choose a homepage, arrange menu links and edit the footer. Save a private draft, preview it, then publish the settings together. Page links follow published address changes. See the [navigation guide](docs/NAVIGATION.md).
 
+Select **Version history** in the editor to compare or preview earlier saved work and restore it as a private draft. Your live page changes only after you publish. See the [version history guide](docs/REVISIONS.md) for retention and image protection.
+
 ## Development checks
 
 ```sh
 npm run check                 # formatting, types, integration tests, production build
 npx playwright install chromium
-npm run test:e2e              # publishing, media and navigation browser journeys
+npm run test:e2e              # publishing, media, navigation and version history journeys
 ```
 
 `npm run format` formats the project. `npm run build && npm start` runs the built application at **http://localhost:3000/admin/**; if you created `.env`, set `ADMIN_ORIGIN` to that origin for this mode. [Operations guide](docs/OPERATIONS.md) explains the two development ports and production HTTPS requirements.
@@ -81,6 +84,7 @@ docs             Research, architecture, roadmap and handoff
 - [API guide](docs/API.md)
 - [Using the media library](docs/MEDIA.md)
 - [Navigation and homepages](docs/NAVIGATION.md)
+- [Version history and restoration](docs/REVISIONS.md)
 - [Running and configuring the app](docs/OPERATIONS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Instructions for coding agents](AGENTS.md)

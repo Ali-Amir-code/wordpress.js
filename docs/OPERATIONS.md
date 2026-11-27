@@ -63,7 +63,7 @@ Only images referenced by published content can be fetched anonymously. Images u
 
 ## Current limits
 
-One site, one owner, one server process. No password reset, MFA, user invitations, revision-history restoration, plugin installer, export/import UI, content deletion or automatic backups. Navigation supports flat header/footer menus (20 links each), an explicit homepage choice and automatic slug-change redirects. Automatic mode retains six published pages plus Journal. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
+One site, one owner, one server process. No password reset, MFA, user invitations, plugin installer, export/import UI, content deletion or automatic backups. Content history provides bounded saved-version recovery; it does not replace backups or automatically save browser edits. See [version history](REVISIONS.md). Navigation supports flat header/footer menus (20 links each), an explicit homepage choice and automatic slug-change redirects. Automatic mode retains six published pages plus Journal. Blog and sitemap queries are currently unpaginated. External image links load in visitors' browsers; the server does not download or proxy those files. Content is plain text in structured blocks, not arbitrary HTML or rich text.
 
 ## Troubleshooting
 

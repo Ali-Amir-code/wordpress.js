@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Puck, type Data } from '@puckeditor/core';
 import { createBlockConfig } from '@wordpressjs/blocks/config';
 import {
@@ -7,13 +7,14 @@ import {
   type ContentDocument,
   type ContentView as ContentEntry,
 } from '@wordpressjs/core';
-import { ArrowLeft, ArrowUpRight, Check, Eye, Save, Settings2 } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, Clock3, Eye, Save, Settings2 } from 'lucide-react';
 import { api, message, navigation, contentSignature } from './api';
 import { MediaField } from './media';
 import '@puckeditor/core/no-external.css';
 import '@wordpressjs/blocks/styles.css';
 
 const blockConfig = createBlockConfig({ type: 'custom', label: 'Image', render: MediaField });
+const RevisionHistory = lazy(() => import('./revisions'));
 
 export default function Editor({ id, siteUrl }: { id: string; siteUrl: string }) {
   const [entry, setEntry] = useState<ContentEntry | null>(null),
@@ -52,11 +53,10 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
-    [showDetails, setShowDetails] = useState(false);
-  const initialData = useMemo(
-    () => ({ content: initial.document.content, root: initial.document.root }),
-    [initial],
-  );
+    [showDetails, setShowDetails] = useState(false),
+    [showHistory, setShowHistory] = useState(false),
+    [canvasData, setCanvasData] = useState(initial.document),
+    [canvasVersion, setCanvasVersion] = useState(0);
   const draft = { title, slug, description, document };
   const draftPath = contentPath(
     entry.kind,
@@ -138,6 +138,31 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
       setBusy(false);
     }
   }
+  async function restore(historyId: number, restoreSlug: string) {
+    if (busyRef.current || dirty) throw new Error('Save your edits before restoring a version.');
+    busyRef.current = true;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const restored = await api<ContentEntry>(
+        `/content/${entry.id}/revisions/${historyId}/restore`,
+        { method: 'POST', body: { revision: entry.revision, slug: restoreSlug } },
+      );
+      setEntry(restored);
+      setTitle(restored.title);
+      setSlug(restored.slug);
+      setDescription(restored.description);
+      setDocument(restored.document);
+      setCanvasData(restored.document);
+      setCanvasVersion((version) => version + 1);
+      setShowHistory(false);
+      setNotice('Version restored as a private draft. Publish when ready.');
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
   function back() {
     location.hash = initial.kind === 'post' ? 'posts' : 'pages';
   }
@@ -167,6 +192,15 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
           </span>
         </div>
         <div className="editor-actions">
+          <button
+            className="button compact"
+            disabled={busy}
+            aria-haspopup="dialog"
+            onClick={() => setShowHistory(true)}
+          >
+            <Clock3 size={16} />
+            Version history
+          </button>
           <button
             className="button compact"
             aria-expanded={showDetails}
@@ -245,8 +279,9 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
       )}
       <div className="editor-canvas" aria-busy={busy} inert={busy}>
         <Puck
+          key={canvasVersion}
           config={blockConfig}
-          data={initialData}
+          data={canvasData}
           onChange={(data: Data<BlockProps>) =>
             setDocument({ schemaVersion: 1, content: data.content, root: { props: {} } })
           }
@@ -259,6 +294,17 @@ function EditorWorkspace({ initial, siteUrl }: { initial: ContentEntry; siteUrl:
           }}
         />
       </div>
+      {showHistory && (
+        <Suspense fallback={<p role="status">Opening version history…</p>}>
+          <RevisionHistory
+            entry={entry}
+            dirty={dirty}
+            siteUrl={siteUrl}
+            onClose={() => setShowHistory(false)}
+            onRestore={restore}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

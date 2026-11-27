@@ -33,7 +33,11 @@ The server never trusts editor data. The contract allowlists block types, fields
 
 Each document has a stable UUID, kind (`page` or `post`), working title/slug/description/blocks, revision counter, timestamps and an optional **published snapshot**. Draft updates increment the revision. Publishing copies the whole draft, including its slug and metadata, into the public snapshot atomically. Public queries read only snapshots. Unpublishing removes the snapshot without discarding the draft.
 
-Updates and publication actions carry the expected revision. Stale writers receive HTTP 409, preventing one browser tab from silently overwriting another. The first version does not retain historical revisions; a revision counter is not a revision-history feature. Slugs are validated and unique within each kind; published slugs are also unique. Pages use `/:slug`, with the selected homepage at `/`; posts use `/blog/:slug`. System routes are reserved.
+Updates, restoration and publication actions carry the expected revision. Stale writers receive HTTP 409, preventing one browser tab from silently overwriting another. Slugs are validated and unique within each kind; published slugs are also unique. Pages use `/:slug`, with the selected homepage at `/`; posts use `/blog/:slug`. System routes are reserved.
+
+`RevisionRepository` records immutable saved snapshots in the content transaction and retains the latest 30 versions per entry plus an older current publication. History IDs are separate from content concurrency counters. Restoring validates the snapshot and managed media, replaces only the working draft, and records a new version atomically; public snapshots and routing remain unchanged until publication. Retained versions hold their own media references, released when history expires. Migration 4 preserves existing tables and captures draft/publication upgrade baselines. See [ADR 0004](decisions/0004-content-revisions.md).
+
+The editor lazy-loads a history dialog with metadata/block-change comparison, private previews and explicit restoration. Unsaved edits block restoration; successful restoration resets external fields and remounts Puck from the restored document. This also resets Puck's undo stack, avoiding old internal editor state overwriting recovered content. History is bounded recovery, not autosave or complete backup tooling.
 
 ## Navigation and routing
 
@@ -55,7 +59,7 @@ SQLite uses foreign keys, WAL, prepared statements and numbered migrations. Each
 
 Development: Vite proxies `/api` to Fastify, and the public website is served by Fastify. Production: one Fastify process serves the built admin and public HTML. The public website needs no hydration JavaScript for the built-in blocks. Configure a canonical origin rather than trusting arbitrary Host headers.
 
-Media uses an authenticated multipart endpoint and a local storage adapter. Images are decoded into bounded WebP files, with a catalog and separate draft/published reference rows updated inside content transactions. Anonymous media reads require a published reference; metadata in each block is a snapshot. Pending writes/deletions are recovered on startup. Vite also proxies `/media/`. See [ADR 0002](decisions/0002-media-library.md) and the backup requirements in OPERATIONS.md.
+Media uses an authenticated multipart endpoint and a local storage adapter. Images are decoded into bounded WebP files, with a catalog and draft/published/retained-version references updated inside content transactions. Anonymous media reads require a current published reference; metadata in each block is a snapshot. Pending writes/deletions are recovered on startup. Vite also proxies `/media/`. See [ADR 0002](decisions/0002-media-library.md) and the backup requirements in OPERATIONS.md.
 
 ## Extension contracts
 

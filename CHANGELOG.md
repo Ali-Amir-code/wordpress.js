@@ -1,5 +1,14 @@
 # Changelog
 
+## Version history workspace — 2026-11-27
+
+- Added a lazy-loaded history dialog with saved-version browsing, metadata/block comparisons and complete private previews.
+- Added explicit restore-as-draft confirmation, an address override for conflicts, unsaved-edit protection and stale-window errors.
+- Restored content resets both page details and the visual editor's internal document/undo history; publication remains a separate action.
+- Added the version history guide and updated architecture, roadmap, API, media/operations guides and contributor handoff.
+
+Validation: 47 core/API tests and four browser journeys cover publishing, media, navigation and version history. History checks include keyboard focus, narrow layouts, dialog accessibility, private previews, address conflicts, unsaved/stale edits, restored canvas editing, explicit publication and pagination. These checks cover the tested fixtures; wider accessibility, security, backup/restore and load reviews remain release gates.
+
 ## Content revision backend — 2026-11-27
 
 - Added private, paginated history and saved-version preview/restore APIs for pages and posts.

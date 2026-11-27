@@ -30,17 +30,19 @@ Use Node 24 and `npm ci`. README.md is the quick start; OPERATIONS.md explains t
 
 **M2 navigation and homepage selection is implemented**. [ADR 0003](decisions/0003-navigation-and-routing.md) defines ordered links, independent navigation snapshots, homepage routing, canonical URLs and slug-change redirects. `navigation-repository.ts` owns these rules, `packages/core/src/navigation.ts` owns the contract, and migration 3 preserves v2 sites. The lazy-loaded `apps/admin/src/navigation.tsx` owns editing, picking content, private preview and conflict handling. `dialog.tsx` is shared with media. Eight integration tests cover validation, draft privacy, conflicts, routing, history, persistence and upgrades; the navigation browser journey covers the complete owner workflow, keyboard actions, mobile layouts and fixture accessibility. See [NAVIGATION.md](NAVIGATION.md) for user-facing rules and limits.
 
-In progress: **recoverable content revision history**. [ADR 0004](decisions/0004-content-revisions.md) defines retention, safe restoration and media protection. The backend records saved/publication versions, exposes private list/detail/preview/restore endpoints, prunes history transactionally and migrates existing sites to schema 4. Media now reports retained-version usage and protects those images. The editor history dialog and its browser journey follow in the next checkpoint.
+**M2 recoverable content revision history is implemented**. [ADR 0004](decisions/0004-content-revisions.md) defines retention, safe restoration and media protection; [REVISIONS.md](REVISIONS.md) explains the workflow. `revision-repository.ts` owns snapshots/retention, `revisions.ts` registers private APIs, and the content repository orchestrates atomic mutations. Migration 4 captures existing drafts/publications without changing existing tables. Admin `revisions.tsx` owns the lazy history dialog; `editor.tsx` remounts Puck and resets metadata after restoration. The media library reports retained-version usage and protects those images. Seven integration tests cover scope/privacy, restoration, conflicts, unsafe snapshots, retention, rollback failures, media lifetimes and upgrade/restart preservation. The browser journey exercises comparisons, preview, keyboard focus, mobile layout, unsaved guards, address conflicts, restoration, subsequent editing/publication, stale tabs and pagination.
+
+Next suggested module: **rich text with constrained output**. Write an ADR for a versioned allowlisted text document, editor controls, links, shared rendering and migration of plain-text blocks. Preserve plain text and retained snapshots on upgrade; never add arbitrary HTML or script-capable fields. Backups/export and account recovery remain separate production release gates.
 
 Independent small tasks: accessible quote-block improvements, public blog pagination, and export-format design. Larger changes need an ADR and the acceptance criteria in ROADMAP.md.
 
 ## Known limitations and decisions
 
 - Naming clearance or a distinct final name is unresolved. This is not an official WordPress project.
-- No rich text, revision-history restoration, scheduled publishing, roles, recovery/MFA, forms, plugins, themes marketplace, custom content types or commerce.
+- No rich text, scheduled publishing, roles, recovery/MFA, forms, plugins, themes marketplace, custom content types or commerce.
 - Media storage is local disk with fixed quotas and no original retention or responsive variants. Publication-aware no-store access favors privacy over CDN caching. Pending deletions recover on restart; persistent storage errors need operator attention.
 - No compatibility claim for WordPress plugins, PHP themes or exports.
-- A revision counter detects conflicts; it does not preserve historical snapshots.
+- Content history retains 30 recent versions plus an older current publication. No autosave, manual history cleanup, text-level diff or recovery of pre-upgrade overwritten drafts. Current settings/menus are used in old-version previews. History is not a backup.
 - Navigation supports flat menus with 20 links each; automatic mode uses at most six published pages plus Journal. No nested menus or manual redirect editor. Public blog and sitemap queries are not yet paginated.
 - Theme settings change the public site immediately; content changes require publication.
 - The root admin component should be split into feature modules as features grow. Do not turn this early foundation into a single expanding file.

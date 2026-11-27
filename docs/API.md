@@ -74,7 +74,7 @@ Targets include `id`, `kind`, `title`, `published` and `path`; published titles 
 | ------ | ------------ | ---------------------------------------------------------------------------------------------------------------- |
 | POST   | `/media`     | One multipart `file` part, no other fields. Returns a `MediaItem` with HTTP 201.                                 |
 | GET    | `/media`     | `{ items, total, usage }`; query `q` (title/alt), `limit` (1–100, default 24), `offset`.                         |
-| GET    | `/media/:id` | Current metadata, dimensions, bytes, revision, URL and draft/published usage counts.                             |
+| GET    | `/media/:id` | Current metadata, dimensions, bytes, revision, URL and draft/published/retained-version usage counts.            |
 | PUT    | `/media/:id` | `{ title, alt, caption, revision }`; changes library defaults, not existing content.                             |
 | DELETE | `/media/:id` | `{ revision }`; returns `{ ok: true }`. Draft, published and retained-version references prevent deletion (409). |
 
