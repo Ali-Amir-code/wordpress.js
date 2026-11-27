@@ -213,7 +213,9 @@ function MediaBrowser({
                       ? 'On your website'
                       : item.draftUses
                         ? 'In saved drafts'
-                        : 'Private · Not used yet'}
+                        : item.revisionUses
+                          ? 'Kept for version history'
+                          : 'Private · Not used yet'}
                   </small>
                 </span>
               </button>
@@ -427,9 +429,11 @@ function MediaDetails({
                 </label>
                 <p className="media-usage">
                   Used in {item.draftUses} saved {item.draftUses === 1 ? 'draft' : 'drafts'} and{' '}
-                  {item.publishedUses} published {item.publishedUses === 1 ? 'entry' : 'entries'}.{' '}
-                  {item.draftUses || item.publishedUses
-                    ? 'Remove it from these drafts and published pages before deleting.'
+                  {item.publishedUses} published {item.publishedUses === 1 ? 'entry' : 'entries'},
+                  and {item.revisionUses} retained{' '}
+                  {item.revisionUses === 1 ? 'version' : 'versions'}.{' '}
+                  {item.draftUses || item.publishedUses || item.revisionUses
+                    ? 'This image is protected while a draft, published entry or retained version uses it.'
                     : 'This image can be deleted.'}
                 </p>
                 <div role="status" className="media-live">
@@ -442,7 +446,7 @@ function MediaDetails({
                   <button
                     type="button"
                     className="button danger"
-                    disabled={busy || !!(item.draftUses || item.publishedUses)}
+                    disabled={busy || !!(item.draftUses || item.publishedUses || item.revisionUses)}
                     onClick={remove}
                   >
                     <Trash2 size={15} />

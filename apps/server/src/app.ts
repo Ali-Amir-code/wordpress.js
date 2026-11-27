@@ -20,6 +20,7 @@ import { equalToken, hashPassword, newToken, tokenHash, verifyPassword } from '.
 import { escapeXml, renderBlog, renderDocument, renderNotice, renderSite } from './render';
 import { LocalMediaStorage, type MediaStorage } from './media-storage';
 import { registerMedia } from './media';
+import { registerRevisions } from './revisions';
 
 export interface AppOptions {
   databasePath: string;
@@ -294,6 +295,7 @@ export async function buildApp(options: AppOptions) {
     );
   });
   const contentId = (params: unknown) => z.object({ id: z.uuid() }).parse(params).id;
+  registerRevisions(app, repo, options.siteUrl);
   app.get('/api/content/:id', async (request) =>
     repo.navigation.present(repo.get(contentId(request.params))),
   );

@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { MediaRepository } from './media-repository';
 import { NavigationRepository } from './navigation-repository';
+import { RevisionRepository } from './revision-repository';
 import {
   defaultSettings,
   defaultNavigation,
@@ -9,6 +10,7 @@ import {
   type ContentKind,
   type Draft,
   type SiteSettings,
+  type RevisionEvent,
 } from '@wordpressjs/core';
 
 export class AppError extends Error {
@@ -46,6 +48,7 @@ export class Repository {
   readonly db: DatabaseSync;
   readonly media: MediaRepository;
   readonly navigation: NavigationRepository;
+  readonly revisions: RevisionRepository;
   constructor(path: string, siteUrl = 'http://localhost:3000') {
     this.db = new DatabaseSync(path);
     this.db.exec(
@@ -53,7 +56,7 @@ export class Repository {
     );
     const version = (this.db.prepare('PRAGMA user_version').get() as { user_version: number })
       .user_version;
-    if (version > 3) {
+    if (version > 4) {
       this.db.close();
       throw new Error(
         'Database is newer than this application. Upgrade the application before opening it.',
@@ -101,6 +104,33 @@ export class Repository {
           .run(initial, initial);
       });
     this.navigation = new NavigationRepository(this.db, (fn) => this.transaction(fn));
+    this.revisions = new RevisionRepository(this.db);
+    if (version < 4)
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE content_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE, content_revision INTEGER NOT NULL, event TEXT NOT NULL CHECK (event IN ('created','saved','published','restored','unpublished','upgrade-draft','upgrade-publication','archived-publication')), created_at TEXT NOT NULL, snapshot TEXT NOT NULL, current_publication INTEGER NOT NULL DEFAULT 0 CHECK (current_publication IN (0,1)), restored_from INTEGER);
+          CREATE INDEX revisions_content ON content_revisions(content_id, id DESC);
+          CREATE UNIQUE INDEX revisions_publication ON content_revisions(content_id) WHERE current_publication = 1;
+          CREATE TABLE revision_media (revision_id INTEGER NOT NULL REFERENCES content_revisions(id) ON DELETE CASCADE, media_id TEXT NOT NULL REFERENCES media(id) ON DELETE RESTRICT, PRIMARY KEY (revision_id, media_id));
+          CREATE INDEX revision_media_asset ON revision_media(media_id);
+        `);
+        for (const row of this.db
+          .prepare('SELECT * FROM content ORDER BY id')
+          .iterate() as Iterable<Row>) {
+          if (row.published)
+            this.revisions.record(
+              row.id,
+              row.revision,
+              JSON.parse(row.published),
+              'upgrade-publication',
+              { published: true, createdAt: row.published_at! },
+            );
+          this.revisions.record(row.id, row.revision, JSON.parse(row.draft), 'upgrade-draft', {
+            createdAt: row.updated_at,
+          });
+        }
+        this.db.exec('PRAGMA user_version = 4;');
+      });
   }
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');
@@ -185,24 +215,56 @@ export class Repository {
       )
       .run(id, kind, JSON.stringify(draft), now, now);
     this.media.syncReferences(id, 'draft', draft);
+    this.revisions.record(id, 1, draft, 'created', { createdAt: now });
     return this.get(id);
   }
   save(id: string, draft: Draft, revision: number) {
+    return this.transaction(() => this.writeDraft(id, draft, revision, 'saved'));
+  }
+  private writeDraft(
+    id: string,
+    draft: Draft,
+    revision: number,
+    event: RevisionEvent,
+    restoredFrom?: number,
+  ) {
+    const current = this.get(id);
+    if (current.revision !== revision)
+      throw new AppError(
+        409,
+        'This content changed in another window. Your edits have not been saved. Reload before trying again.',
+      );
+    draft = this.media.validateDraft(draft);
+    const result = this.db
+      .prepare(
+        'UPDATE content SET draft = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
+      )
+      .run(JSON.stringify(draft), new Date().toISOString(), id, revision);
+    if (!result.changes)
+      throw new AppError(
+        409,
+        'This content changed in another window. Reload before saving. Your local changes have not been saved.',
+      );
+    this.media.syncReferences(id, 'draft', draft);
+    this.revisions.record(id, revision + 1, draft, event, { restoredFrom });
+    this.revisions.prune(id);
+    return this.get(id);
+  }
+  restore(id: string, historyId: number, revision: number, slug?: string) {
     return this.transaction(() => {
-      this.get(id);
-      draft = this.media.validateDraft(draft);
-      const result = this.db
-        .prepare(
-          'UPDATE content SET draft = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?',
-        )
-        .run(JSON.stringify(draft), new Date().toISOString(), id, revision);
-      if (!result.changes)
+      if (this.get(id).revision !== revision)
         throw new AppError(
           409,
-          'This content changed in another window. Reload before saving. Your local changes have not been saved.',
+          'This content changed in another window. Close history and reload the editor before restoring.',
         );
-      this.media.syncReferences(id, 'draft', draft);
-      return this.get(id);
+      const { snapshot } = this.revisions.get(id, historyId);
+      return this.writeDraft(
+        id,
+        { ...snapshot, ...(slug === undefined ? {} : { slug }) },
+        revision,
+        'restored',
+        historyId,
+      );
     });
   }
   publish(id: string, revision: number, published: boolean) {
@@ -233,6 +295,23 @@ export class Repository {
           'This content changed elsewhere. Reload before changing publication.',
         );
       this.media.syncReferences(id, 'published', published ? current : null);
+      if (published) {
+        this.revisions.releasePublication(id, revision + 1);
+        this.revisions.record(id, revision + 1, current, 'published', {
+          published: true,
+          createdAt: now,
+        });
+      } else if (current.published) {
+        this.revisions.record(id, revision + 1, current.published, 'unpublished', {
+          createdAt: now,
+        });
+        this.db
+          .prepare(
+            'UPDATE content_revisions SET current_publication = 0 WHERE content_id = ? AND current_publication = 1',
+          )
+          .run(id);
+      }
+      this.revisions.prune(id);
       if (published)
         this.navigation.recordSlugChange(id, current.kind, current.published?.slug, current.slug);
       return this.get(id);

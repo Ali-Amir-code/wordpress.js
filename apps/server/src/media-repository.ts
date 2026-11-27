@@ -81,6 +81,11 @@ export class MediaRepository {
       createdAt: row.created_at,
       url: mediaPath(row.id),
       ...uses,
+      revisionUses: (
+        this.db
+          .prepare('SELECT count(*) AS count FROM revision_media WHERE media_id = ?')
+          .get(row.id) as { count: number }
+      ).count,
     };
   }
   usage() {
@@ -118,10 +123,10 @@ export class MediaRepository {
       const item = this.get(id);
       if (item.revision !== revision)
         throw new AppError(409, 'This image changed elsewhere. Reload before deleting.');
-      if (item.draftUses || item.publishedUses)
+      if (item.draftUses || item.publishedUses || item.revisionUses)
         throw new AppError(
           409,
-          'This image is used by a saved draft or published page. Remove those references before deleting it.',
+          'This image is used by a saved draft, published page or retained version. It cannot be deleted while those references exist.',
         );
       this.db.prepare("UPDATE media SET state = 'deleting' WHERE id = ?").run(id);
     });

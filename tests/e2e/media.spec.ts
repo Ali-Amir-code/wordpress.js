@@ -146,10 +146,18 @@ test('owner uploads, describes, selects and publishes an image with private draf
   await page.getByRole('button', { name: 'Back to content' }).click();
   await page.getByRole('link', { name: 'Media', exact: true }).click();
   await page.getByRole('button', { name: 'Choose The studio', exact: true }).click();
+  await expect(details.getByRole('button', { name: 'Delete image' })).toBeDisabled();
+  await expect(details.getByText(/retained versions/)).toBeVisible();
+  expect((await page.request.get(asset.url)).status()).toBe(200);
+  await details.getByRole('button', { name: 'Close dialog' }).click();
+  await page
+    .getByLabel('Upload image file')
+    .setInputFiles({ name: 'unused.png', mimeType: 'image/png', buffer: picture });
+  await expect(details.getByRole('textbox', { name: /^Image title/ })).toHaveValue('unused');
   page.once('dialog', (dialog) => dialog.accept());
   await details.getByRole('button', { name: 'Delete image' }).click();
   await expect(details).not.toBeVisible();
-  await expect(page.getByRole('heading', { name: 'A home for your images' })).toBeVisible();
-  expect((await page.request.get(asset.url)).status()).toBe(404);
+  await expect(page.getByRole('heading', { name: 'Media library.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose unused', exact: true })).not.toBeVisible();
   expect(errors).toEqual([]);
 });

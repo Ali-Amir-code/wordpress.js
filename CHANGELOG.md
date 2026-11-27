@@ -1,5 +1,14 @@
 # Changelog
 
+## Content revision backend — 2026-11-27
+
+- Added private, paginated history and saved-version preview/restore APIs for pages and posts.
+- Retain 30 recent versions plus an older current publication; restoration creates a draft and preserves publication isolation.
+- Added transactional media protection for retained versions, usage reporting, safe pruning and restoration with an optional validated slug override.
+- Added migration 4 with separate public/draft upgrade baselines and preservation coverage. The editor history screen follows in the next checkpoint.
+
+Validation: 47 core/API tests cover authentication, conflicts, private previews, restores, retention, reference lifetimes, rollback failures and upgrade/restart preservation. Existing publishing, media and navigation browser journeys cover the changed media-deletion behavior.
+
 ## Navigation workspace — 2026-11-26
 
 - Added homepage selection, automatic/custom header menus, ordered page/post and URL links, and editable footer links/text.

@@ -407,13 +407,15 @@ test('migration 3 preserves all v2 content, media references, settings, accounts
   const tables = ['users', 'sessions', 'settings', 'content', 'media', 'content_media'];
   const before = tables.map((name) => db.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all());
   // A test-owned v2 fixture has exactly the previous schema and no navigation tables.
-  db.exec('DROP TABLE redirects; DROP TABLE navigation; PRAGMA user_version = 2;');
+  db.exec(
+    'DROP TABLE revision_media; DROP TABLE content_revisions; DROP TABLE redirects; DROP TABLE navigation; PRAGMA user_version = 2;',
+  );
   db.close();
   const repo = new Repository(path);
   try {
     assert.equal(
       (repo.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version,
-      3,
+      4,
     );
     assert.deepEqual(
       tables.map((name) => repo.db.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all()),

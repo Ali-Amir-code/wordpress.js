@@ -3,6 +3,7 @@ import { mediaSelectionSchema } from './media';
 import { isSafeUrl } from './urls';
 export * from './media';
 export * from './navigation';
+export * from './revisions';
 export { isSafeUrl } from './urls';
 
 const text = (max: number) => z.string().max(max);

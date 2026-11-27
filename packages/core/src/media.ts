@@ -37,6 +37,7 @@ export type MediaItem = MediaMetadata & {
   url: string;
   draftUses: number;
   publishedUses: number;
+  revisionUses: number;
 };
 export type MediaList = {
   items: MediaItem[];

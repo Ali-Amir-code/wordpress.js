@@ -33,6 +33,23 @@ Errors use `{ "error": "Explanation", "details": ["optional field errors"] }`. V
 
 Passwords are 12–128 characters. Emails are lowercased. Slugs use lowercase ASCII letters, numbers and single hyphens, up to 100 characters. System names are reserved. Block documents have at most 100 blocks and the request body is capped at 512 KiB. There is no content deletion endpoint yet.
 
+## Content revision API
+
+| Method | Route                                       | Behavior                                                                                     |
+| ------ | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| GET    | `/content/:id/revisions`                    | `{ items, total, retainedLimit }`; newest first, `limit` 1–50 (default 20), `offset` >= 0.   |
+| GET    | `/content/:id/revisions/:historyId`         | Version metadata and its validated `snapshot` (`Draft`).                                     |
+| GET    | `/content/:id/revisions/:historyId/preview` | Private HTML of that saved version using current site settings/navigation; noindex/no-store. |
+| POST   | `/content/:id/revisions/:historyId/restore` | `{ revision, slug? }`; restores into the working draft, returning the updated content view.  |
+
+All four endpoints require the owner session; restoration also requires the configured origin. `historyId` is a positive integer identifying an immutable saved snapshot. `revision` in restore requests is the **current content concurrency revision**, not a history ID. A slug override must pass normal slug validation. Unknown body fields are rejected.
+
+Metadata contains `id`, `contentId`, `revision`, `event`, `createdAt`, `title`, `slug`, `description`, `blockCount`, `isCurrentPublication` and `restoredFrom`. Events are `created`, `saved`, `published`, `restored`, `unpublished`, `upgrade-draft`, `upgrade-publication` or `archived-publication`. Upgrade baseline timestamps come from the existing draft/publication; the captured revision counter is the entry's counter at upgrade time, not a reconstructed historical counter.
+
+Keep the latest 30 versions per entry, plus the current publication when older (at most 31). An old publication is copied into recent history before replacement. Unpublishing captures the outgoing public snapshot. Versions include title, slug, description and blocks; they exclude navigation/site settings and unsaved work. Restoring adds a version, preserves the previous saved draft, and leaves publication and redirects unchanged. Only later publication changes the public site.
+
+Wrong entry/version pair or expired history returns 404. Stale content revision, unsupported stored content or a claimed slug returns 409. Schema and managed-media validation still apply. Errors roll back draft, history and reference changes together. See [ADR 0004](decisions/0004-content-revisions.md).
+
 ## Navigation API
 
 | Method | Route                 | Behavior                                                                                                          |
@@ -53,17 +70,17 @@ Targets include `id`, `kind`, `title`, `published` and `path`; published titles 
 
 ## Media API
 
-| Method | Route        | Behavior                                                                                            |
-| ------ | ------------ | --------------------------------------------------------------------------------------------------- |
-| POST   | `/media`     | One multipart `file` part, no other fields. Returns a `MediaItem` with HTTP 201.                    |
-| GET    | `/media`     | `{ items, total, usage }`; query `q` (title/alt), `limit` (1–100, default 24), `offset`.            |
-| GET    | `/media/:id` | Current metadata, dimensions, bytes, revision, URL and draft/published usage counts.                |
-| PUT    | `/media/:id` | `{ title, alt, caption, revision }`; changes library defaults, not existing content.                |
-| DELETE | `/media/:id` | `{ revision }`; returns `{ ok: true }`. Both draft and published references prevent deletion (409). |
+| Method | Route        | Behavior                                                                                                         |
+| ------ | ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| POST   | `/media`     | One multipart `file` part, no other fields. Returns a `MediaItem` with HTTP 201.                                 |
+| GET    | `/media`     | `{ items, total, usage }`; query `q` (title/alt), `limit` (1–100, default 24), `offset`.                         |
+| GET    | `/media/:id` | Current metadata, dimensions, bytes, revision, URL and draft/published usage counts.                             |
+| PUT    | `/media/:id` | `{ title, alt, caption, revision }`; changes library defaults, not existing content.                             |
+| DELETE | `/media/:id` | `{ revision }`; returns `{ ok: true }`. Draft, published and retained-version references prevent deletion (409). |
 
 Uploads allow JPEG, PNG and WebP, up to 10 MiB, 24 megapixels and 8192 pixels per side. They are decoded, oriented, resized within 2560 × 2560 and encoded as WebP without metadata. Animation and other formats are rejected. Limits are 12 requests per minute per IP, two in-flight uploads per process, and a 256 MiB / 1000-image library. Incomplete writes/deletions count toward the quota until recovered.
 
-`MediaItem` includes `id`, `title`, `alt`, `caption`, `width`, `height`, `bytes`, `revision`, `createdAt`, `url`, `draftUses` and `publishedUses`. Usage counts count content entries, not individual blocks. `usage` contains `bytes`, `items`, `maxBytes`, `maxItems`.
+`MediaItem` includes `id`, `title`, `alt`, `caption`, `width`, `height`, `bytes`, `revision`, `createdAt`, `url`, `draftUses`, `publishedUses` and `revisionUses`. Draft/publication usage counts content entries; revision usage counts retained versions, not individual blocks. `usage` contains `bytes`, `items`, `maxBytes`, `maxItems`.
 
 The image URL is **`/media/:id.webp` without `/api`**. It requires the owner cookie until a published snapshot references it. Unpublished/missing images return 404 for anonymous readers. Responses are `private, no-store` and `Vary: Cookie`. Uploaded images must use the `MediaImage` block; local managed URLs are rejected in the legacy `Image` URL block.
 

@@ -9,6 +9,7 @@ import { crc32 } from 'node:zlib';
 import sharp from 'sharp';
 import {
   MEDIA_LIMITS,
+  REVISION_LIMIT,
   defaultSettings,
   emptyDocument,
   mediaSelection,
@@ -280,6 +281,21 @@ test('draft images stay private, publication enables access, and both reference 
   assert.equal((await app.inject(item.url)).statusCode, 200);
   await request('POST', `/api/content/${page.id}/unpublish`, { revision: page.revision });
   assert.equal((await app.inject(item.url)).statusCode, 404);
+  assert.equal((await request('DELETE', `/api/media/${item.id}`, { revision: 1 })).statusCode, 409);
+  assert.ok(repo.media.get(item.id).revisionUses > 0);
+  for (let i = 0; i < REVISION_LIMIT; i++) {
+    const current = repo.get(page.id);
+    repo.save(
+      page.id,
+      {
+        title: current.title,
+        slug: current.slug,
+        description: `Later edit ${i}`,
+        document: emptyDocument(),
+      },
+      current.revision,
+    );
+  }
   assert.equal((await request('DELETE', `/api/media/${item.id}`, { revision: 1 })).statusCode, 200);
   assert.equal((await request('GET', item.url)).statusCode, 404);
 });
@@ -644,7 +660,7 @@ test('v1 upgrade preserves owner, sessions, settings, draft and published snapsh
   assert.equal(migrated.get(id).revision, 7);
   assert.equal(migrated.get(id).published?.description, 'Keep my content');
   assert.ok(migrated.session(tokenHash(session)));
-  assert.equal(migrated.db.prepare('PRAGMA user_version').get()?.user_version, 3);
+  assert.equal(migrated.db.prepare('PRAGMA user_version').get()?.user_version, 4);
   migrated.close();
   const reopened = new Repository(path);
   assert.equal(reopened.get(id).title, 'Existing site');
